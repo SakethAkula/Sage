@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sage - Health Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/onboarding.css') }}">
+</head>
+<body>
+    <div class="onboarding-container">
+        <!-- Background Glass Panels with Neural Graphics -->
+        <div class="bg-panel panel-left">
+            <svg class="neural-svg" viewBox="0 0 200 300">
+                <circle cx="40" cy="50" r="5" fill="#7ab5a6"/>
+                <circle cx="100" cy="30" r="5" fill="#7ab5a6"/>
+                <circle cx="160" cy="60" r="5" fill="#7ab5a6"/>
+                <circle cx="30" cy="120" r="5" fill="#7ab5a6"/>
+                <circle cx="90" cy="100" r="5" fill="#7ab5a6"/>
+                <circle cx="150" cy="130" r="5" fill="#7ab5a6"/>
+                <circle cx="60" cy="180" r="5" fill="#7ab5a6"/>
+                <circle cx="120" cy="160" r="5" fill="#7ab5a6"/>
+                <circle cx="170" cy="200" r="5" fill="#7ab5a6"/>
+                <circle cx="40" cy="240" r="5" fill="#7ab5a6"/>
+                <circle cx="100" cy="220" r="5" fill="#7ab5a6"/>
+                <circle cx="150" cy="260" r="5" fill="#7ab5a6"/>
+                
+                <line x1="40" y1="50" x2="100" y2="30" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="100" y1="30" x2="160" y2="60" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="40" y1="50" x2="30" y2="120" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="40" y1="50" x2="90" y2="100" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="100" y1="30" x2="90" y2="100" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="160" y1="60" x2="150" y2="130" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="90" y1="100" x2="150" y2="130" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="30" y1="120" x2="60" y2="180" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="90" y1="100" x2="120" y2="160" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="150" y1="130" x2="170" y2="200" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="60" y1="180" x2="40" y2="240" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="60" y1="180" x2="100" y2="220" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="120" y1="160" x2="100" y2="220" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="170" y1="200" x2="150" y2="260" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="100" y1="220" x2="150" y2="260" stroke="#7ab5a6" stroke-width="1.5"/>
+            </svg>
+        </div>
+        
+        <div class="bg-panel panel-right-top">
+            <svg class="neural-svg" viewBox="0 0 180 250">
+                <circle cx="90" cy="40" r="5" fill="#7ab5a6"/>
+                <circle cx="40" cy="80" r="5" fill="#7ab5a6"/>
+                <circle cx="140" cy="80" r="5" fill="#7ab5a6"/>
+                <circle cx="70" cy="130" r="5" fill="#7ab5a6"/>
+                <circle cx="110" cy="130" r="5" fill="#7ab5a6"/>
+                <circle cx="50" cy="180" r="5" fill="#7ab5a6"/>
+                <circle cx="130" cy="180" r="5" fill="#7ab5a6"/>
+                <circle cx="90" cy="220" r="5" fill="#7ab5a6"/>
+                
+                <line x1="90" y1="40" x2="40" y2="80" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="90" y1="40" x2="140" y2="80" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="40" y1="80" x2="70" y2="130" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="140" y1="80" x2="110" y2="130" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="70" y1="130" x2="110" y2="130" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="70" y1="130" x2="50" y2="180" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="110" y1="130" x2="130" y2="180" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="50" y1="180" x2="90" y2="220" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="130" y1="180" x2="90" y2="220" stroke="#7ab5a6" stroke-width="1.5"/>
+            </svg>
+        </div>
+        
+        <div class="bg-panel panel-right-bottom">
+            <svg class="neural-svg" viewBox="0 0 150 200">
+                <circle cx="75" cy="30" r="4" fill="#7ab5a6"/>
+                <circle cx="30" cy="70" r="4" fill="#7ab5a6"/>
+                <circle cx="120" cy="70" r="4" fill="#7ab5a6"/>
+                <circle cx="50" cy="120" r="4" fill="#7ab5a6"/>
+                <circle cx="100" cy="120" r="4" fill="#7ab5a6"/>
+                <circle cx="75" cy="170" r="4" fill="#7ab5a6"/>
+                
+                <line x1="75" y1="30" x2="30" y2="70" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="75" y1="30" x2="120" y2="70" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="30" y1="70" x2="50" y2="120" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="120" y1="70" x2="100" y2="120" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="50" y1="120" x2="100" y2="120" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="50" y1="120" x2="75" y2="170" stroke="#7ab5a6" stroke-width="1.5"/>
+                <line x1="100" y1="120" x2="75" y2="170" stroke="#7ab5a6" stroke-width="1.5"/>
+            </svg>
+        </div>
+        
+        <!-- Plant Decoration -->
+        <div class="plant-decoration">🌿</div>
+        
+        <!-- Sparkle -->
+        <div class="sparkle">✦</div>
+        
+        <!-- Main Glass Card -->
+        <div class="glass-card">
+            <!-- Logo -->
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 50 50" width="40" height="40">
+                        <rect x="18" y="8" width="14" height="34" rx="3" fill="#3dbda7"/>
+                        <rect x="8" y="18" width="34" height="14" rx="3" fill="#3dbda7"/>
+                        <ellipse cx="38" cy="12" rx="8" ry="5" fill="#2d8a7a" transform="rotate(45, 38, 12)"/>
+                        <line x1="38" y1="12" x2="32" y2="18" stroke="#1f6b5c" stroke-width="1.5"/>
+                    </svg>
+                </div>
+                <span class="logo-text">sage</span>
+            </div>
+            <p class="logo-subtitle">Healthcare Chatbot System</p>
+            
+            <!-- Title -->
+            <h1 class="page-title">Complete Your Health Profile</h1>
+            <p class="page-desc">Help us personalize your experience</p>
+            
+            <!-- Onboarding Form -->
+            <form class="onboarding-form" action="/onboarding" method="POST">
+                
+                <!-- Health Conditions Section -->
+                <div class="form-section">
+                    <label class="section-label">Any existing health conditions?</label>
+                    <div class="checkbox-grid">
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="conditions" value="Diabetes">
+                            <span class="checkmark"></span>
+                            <span class="label-text">Diabetes</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="conditions" value="Hypertension">
+                            <span class="checkmark"></span>
+                            <span class="label-text">Hypertension</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="conditions" value="Asthma">
+                            <span class="checkmark"></span>
+                            <span class="label-text">Asthma</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="conditions" value="Heart Disease">
+                            <span class="checkmark"></span>
+                            <span class="label-text">Heart Disease</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="conditions" value="Thyroid">
+                            <span class="checkmark"></span>
+                            <span class="label-text">Thyroid</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="conditions" value="Arthritis">
+                            <span class="checkmark"></span>
+                            <span class="label-text">Arthritis</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="conditions" value="Allergies">
+                            <span class="checkmark"></span>
+                            <span class="label-text">Allergies</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="conditions" value="Other" id="otherCheckbox" onchange="toggleOtherInput()">
+                            <span class="checkmark"></span>
+                            <span class="label-text">Other</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Other condition input (hidden by default) -->
+                    <div class="other-input-wrapper" id="otherInputWrapper">
+                        <input type="text" name="other_condition" id="otherConditionInput" placeholder="Please specify your condition">
+                    </div>
+                </div>
+                
+                <!-- Allergies Section -->
+                <div class="form-section">
+                    <label class="section-label">Known Allergies</label>
+                    <div class="input-group">
+                        <input type="text" name="allergies" placeholder="e.g., Penicillin, Peanuts (leave blank if none)">
+                    </div>
+                </div>
+                
+                <!-- Medications Section -->
+                <div class="form-section">
+                    <label class="section-label">Current Medications</label>
+                    <div class="input-group">
+                        <input type="text" name="medications" placeholder="e.g., Metformin, Aspirin (leave blank if none)">
+                    </div>
+                </div>
+                
+                <button type="submit" class="continue-btn">CONTINUE TO SAGE</button>
+                
+                <p class="skip-link">
+                    <a href="/chat">Skip for now</a>
+                </p>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function toggleOtherInput() {
+            const checkbox = document.getElementById('otherCheckbox');
+            const wrapper = document.getElementById('otherInputWrapper');
+            const input = document.getElementById('otherConditionInput');
+            
+            if (checkbox.checked) {
+                wrapper.classList.add('show');
+                input.focus();
+            } else {
+                wrapper.classList.remove('show');
+                input.value = '';
+            }
+        }
+    </script>
+</body>
+</html>

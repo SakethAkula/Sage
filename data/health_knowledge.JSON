@@ -1,0 +1,226 @@
+{
+    "topics": [
+        {
+            "id": 1,
+            "name": "headache",
+            "keywords": ["headache", "head pain", "head hurts", "migraine", "head ache"],
+            "description": "A headache is pain or discomfort in the head or face area.",
+            "common_causes": [
+                "Stress and tension",
+                "Dehydration",
+                "Lack of sleep",
+                "Eye strain from screens",
+                "Skipping meals"
+            ],
+            "home_remedies": [
+                "Rest in a quiet, dark room",
+                "Drink plenty of water",
+                "Apply a cold or warm compress to your forehead",
+                "Take over-the-counter pain relievers like paracetamol",
+                "Get some sleep"
+            ],
+            "when_to_see_doctor": [
+                "Headache is severe or sudden",
+                "Accompanied by fever, stiff neck, or confusion",
+                "Occurs after a head injury",
+                "Persists for more than 3 days",
+                "Interferes with daily activities regularly"
+            ]
+        },
+        {
+            "id": 2,
+            "name": "fever",
+            "keywords": ["fever", "temperature", "feeling hot", "high temperature", "feverish"],
+            "description": "A fever is a temporary rise in body temperature, often due to an illness.",
+            "common_causes": [
+                "Viral infections (cold, flu)",
+                "Bacterial infections",
+                "Heat exhaustion",
+                "Some medications",
+                "Vaccinations"
+            ],
+            "home_remedies": [
+                "Rest and get plenty of sleep",
+                "Stay hydrated - drink water, juice, or soup",
+                "Take paracetamol or ibuprofen to reduce temperature",
+                "Wear lightweight clothing",
+                "Keep room temperature comfortable"
+            ],
+            "when_to_see_doctor": [
+                "Temperature exceeds 103°F (39.4°C)",
+                "Fever lasts more than 3 days",
+                "Accompanied by severe headache or rash",
+                "Difficulty breathing",
+                "Signs of dehydration"
+            ]
+        },
+        {
+            "id": 3,
+            "name": "cold",
+            "keywords": ["cold", "runny nose", "sneezing", "stuffy nose", "common cold", "blocked nose"],
+            "description": "The common cold is a viral infection of your nose and throat.",
+            "common_causes": [
+                "Rhinoviruses (most common)",
+                "Close contact with infected people",
+                "Touching contaminated surfaces",
+                "Weakened immune system"
+            ],
+            "home_remedies": [
+                "Rest as much as possible",
+                "Drink warm fluids like soup or tea",
+                "Use saline nasal drops",
+                "Gargle with warm salt water",
+                "Use a humidifier"
+            ],
+            "when_to_see_doctor": [
+                "Symptoms last more than 10 days",
+                "Symptoms are severe or unusual",
+                "High fever (above 101.3°F)",
+                "Difficulty breathing or chest pain"
+            ]
+        },
+        {
+            "id": 4,
+            "name": "stomach ache",
+            "keywords": ["stomach ache", "stomach pain", "belly pain", "abdominal pain", "tummy ache", "stomach hurts"],
+            "description": "Stomach ache refers to pain or discomfort in the abdominal area.",
+            "common_causes": [
+                "Indigestion",
+                "Gas and bloating",
+                "Food poisoning",
+                "Constipation",
+                "Stress and anxiety"
+            ],
+            "home_remedies": [
+                "Drink ginger or peppermint tea",
+                "Apply a heating pad to your stomach",
+                "Eat bland foods like toast or rice",
+                "Avoid spicy, fatty, or acidic foods",
+                "Stay hydrated with small sips of water"
+            ],
+            "when_to_see_doctor": [
+                "Severe pain that doesn't improve",
+                "Pain accompanied by fever",
+                "Blood in stool or vomit",
+                "Unable to keep food down for 2+ days"
+            ]
+        },
+        {
+            "id": 5,
+            "name": "cough",
+            "keywords": ["cough", "coughing", "dry cough", "wet cough", "persistent cough"],
+            "description": "A cough is your body's way of clearing irritants from your throat and airways.",
+            "common_causes": [
+                "Common cold or flu",
+                "Allergies",
+                "Asthma",
+                "Acid reflux",
+                "Smoking or air pollution"
+            ],
+            "home_remedies": [
+                "Drink warm liquids like honey-lemon tea",
+                "Use cough drops or lozenges",
+                "Use a humidifier",
+                "Elevate your head while sleeping",
+                "Avoid irritants like smoke"
+            ],
+            "when_to_see_doctor": [
+                "Cough lasts more than 3 weeks",
+                "Coughing up blood",
+                "Difficulty breathing",
+                "Accompanied by high fever"
+            ]
+        },
+        {
+            "id": 6,
+            "name": "sore throat",
+            "keywords": ["sore throat", "throat pain", "throat hurts", "painful swallowing", "scratchy throat"],
+            "description": "A sore throat is pain or irritation of the throat that often worsens when you swallow.",
+            "common_causes": [
+                "Viral infections (cold, flu)",
+                "Bacterial infections (strep throat)",
+                "Dry air",
+                "Allergies",
+                "Overuse of voice"
+            ],
+            "home_remedies": [
+                "Gargle with warm salt water",
+                "Drink warm tea with honey",
+                "Suck on ice chips or lozenges",
+                "Use a humidifier",
+                "Rest your voice"
+            ],
+            "when_to_see_doctor": [
+                "Severe pain or difficulty swallowing",
+                "Fever higher than 101°F",
+                "White patches on tonsils",
+                "Lasts longer than a week"
+            ]
+        },
+        {
+            "id": 7,
+            "name": "fatigue",
+            "keywords": ["tired", "fatigue", "exhausted", "no energy", "feeling weak", "sleepy", "drowsy"],
+            "description": "Fatigue is a feeling of constant tiredness or weakness.",
+            "common_causes": [
+                "Lack of sleep",
+                "Poor diet",
+                "Stress and anxiety",
+                "Lack of physical activity",
+                "Underlying health conditions"
+            ],
+            "home_remedies": [
+                "Aim for 7-9 hours of sleep per night",
+                "Eat a balanced diet with regular meals",
+                "Exercise regularly",
+                "Reduce caffeine and alcohol",
+                "Practice stress management techniques"
+            ],
+            "when_to_see_doctor": [
+                "Fatigue persists despite rest",
+                "Accompanied by unexplained weight loss",
+                "Fever or night sweats",
+                "Depression or mood changes"
+            ]
+        },
+        {
+            "id": 8,
+            "name": "back pain",
+            "keywords": ["back pain", "back hurts", "lower back pain", "upper back pain", "backache"],
+            "description": "Back pain is one of the most common medical problems.",
+            "common_causes": [
+                "Poor posture",
+                "Muscle strain",
+                "Sitting for long periods",
+                "Heavy lifting",
+                "Lack of exercise"
+            ],
+            "home_remedies": [
+                "Apply ice for first 48 hours, then heat",
+                "Continue light activities as tolerated",
+                "Practice good posture",
+                "Do gentle stretching exercises",
+                "Take over-the-counter pain relievers"
+            ],
+            "when_to_see_doctor": [
+                "Pain spreads down one or both legs",
+                "Causes weakness or numbness in legs",
+                "Severe pain that doesn't improve with rest",
+                "Pain after a fall or injury"
+            ]
+        }
+    ],
+    "emergency_keywords": [
+        "chest pain", "can't breathe", "difficulty breathing", "stroke", 
+        "heart attack", "unconscious", "severe bleeding", "choking",
+        "seizure", "overdose", "suicidal", "suicide"
+    ],
+    "general_health_tips": [
+        "Drink at least 8 glasses of water daily",
+        "Get 7-9 hours of sleep each night",
+        "Exercise for at least 30 minutes most days",
+        "Eat plenty of fruits and vegetables",
+        "Wash your hands regularly to prevent infections"
+    ],
+    "disclaimer": "This information is for educational purposes only and is not a substitute for professional medical advice."
+}
