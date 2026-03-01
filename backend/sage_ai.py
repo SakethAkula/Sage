@@ -5,7 +5,9 @@ Handles AI-powered health conversations using Claude API.
 
 import anthropic
 import base64
-from db_config import ANTHROPIC_API_KEY
+import os
+
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 
 
 class SageAI:
@@ -215,3 +217,38 @@ def clear_sage_instance(user_id):
     """Clear a user's Sage AI instance."""
     if user_id in _sage_instances:
         del _sage_instances[user_id]
+
+
+def generate_chat_title(first_message):
+    """Generate a meaningful short title for a chat session based on the first message."""
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=20,
+            messages=[{
+                "role": "user",
+                "content": f"""Generate a very short title (2-4 words max) for a health chat that starts with this message: "{first_message}"
+
+Examples:
+- "I have a headache" → "Headache Help"
+- "My stomach hurts" → "Stomach Pain"
+- "I feel very tired" → "Fatigue Issues"
+- "I have a fever and cold" → "Cold & Fever"
+- "Can you help me sleep better" → "Sleep Problems"
+
+Just respond with the short title, nothing else."""
+            }]
+        )
+        
+        title = response.content[0].text.strip()
+        # Clean up and limit length
+        title = title.replace('"', '').replace("'", "")[:50]
+        return title if title else "Health Chat"
+        
+    except Exception as e:
+        print(f"Error generating title: {e}")
+        # Fallback: use first few words of message
+        words = first_message.split()[:4]
+        return ' '.join(words)[:50] if words else "Health Chat"

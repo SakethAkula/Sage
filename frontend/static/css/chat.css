@@ -727,3 +727,12 @@ body {
 .theme-toggle {
     display: none !important;
 }
+
+/* Sidebar Credit */
+.sidebar-credit {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-align: center;
+    padding: 10px;
+    margin: 0;
+}

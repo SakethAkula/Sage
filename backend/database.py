@@ -1,7 +1,7 @@
 """
 Sage - Database Helper
 Handles all database operations for users, profiles, and chat history
-Updated with password reset functionality
+Updated with password reset and user details update
 """
 
 import mysql.connector
@@ -102,6 +102,20 @@ def create_google_user(name, email, gender=None, dob=None):
         cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
         existing = cursor.fetchone()
         if existing:
+            # Update existing user's gender and dob if provided
+            if gender or dob:
+                update_query = "UPDATE users SET "
+                update_values = []
+                if gender:
+                    update_query += "gender = %s, "
+                    update_values.append(gender)
+                if dob:
+                    update_query += "dob = %s, "
+                    update_values.append(dob)
+                update_query = update_query.rstrip(', ') + " WHERE id = %s"
+                update_values.append(existing[0])
+                cursor.execute(update_query, tuple(update_values))
+                connection.commit()
             return existing[0]  # Return existing user_id
         
         # Create random password for Google users (they won't use it)
@@ -178,6 +192,44 @@ def update_user_password(email, new_password):
         
     except Error as e:
         print(f"Error updating password: {e}")
+        return False
+    finally:
+        cursor.close()
+        connection.close()
+
+
+def update_user_details(user_id, gender=None, dob=None):
+    """Update user's gender and/or date of birth."""
+    connection = get_connection()
+    if not connection:
+        return False
+    
+    try:
+        cursor = connection.cursor()
+        
+        updates = []
+        values = []
+        
+        if gender:
+            updates.append("gender = %s")
+            values.append(gender)
+        if dob:
+            updates.append("dob = %s")
+            values.append(dob)
+        
+        if not updates:
+            return True  # Nothing to update
+        
+        query = f"UPDATE users SET {', '.join(updates)} WHERE id = %s"
+        values.append(user_id)
+        
+        cursor.execute(query, tuple(values))
+        connection.commit()
+        
+        return True
+        
+    except Error as e:
+        print(f"Error updating user details: {e}")
         return False
     finally:
         cursor.close()

@@ -1,7 +1,7 @@
 """
 Sage - AI Healthcare Chatbot
 Backend: Flask Server with MySQL Authentication & Google OAuth
-Updated with Email OTP Verification and Password Reset
+Updated with Email OTP Verification, Password Reset, and Smart Chat Titles
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
@@ -18,13 +18,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from database import (
     create_user, verify_user, get_user_by_id, get_user_by_email,
-    create_google_user, update_user_password,
+    create_google_user, update_user_password, update_user_details,
     save_health_profile, get_health_profile,
     create_chat_session, get_chat_sessions, update_session_title, delete_chat_session,
     save_chat_message, get_chat_history, clear_chat_history
 )
 from db_config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
-from sage_ai import get_sage_instance, clear_sage_instance
+from sage_ai import get_sage_instance, clear_sage_instance, generate_chat_title
 from email_utils import send_verification_otp, send_password_reset_otp, verify_otp
 
 app = Flask(
@@ -93,7 +93,9 @@ def login():
         else:
             return render_template('login.html', error="Invalid email or password")
     
-    return render_template('login.html')
+    # Check for success message from password reset
+    success = request.args.get('success')
+    return render_template('login.html', success=success)
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -281,6 +283,48 @@ def resend_reset_otp():
         return jsonify({'error': 'Failed to send OTP'}), 500
 
 
+@app.route('/google-complete-profile', methods=['GET', 'POST'])
+def google_complete_profile():
+    """Complete profile for Google users - collect gender and DOB."""
+    if not session.get('google_signup_pending'):
+        return redirect(url_for('login'))
+    
+    name = session.get('google_name', '')
+    email = session.get('google_email', '')
+    
+    if request.method == 'POST':
+        gender = request.form.get('gender')
+        dob = request.form.get('dob')
+        
+        if not gender or not dob:
+            return render_template('google_complete_profile.html', 
+                                   name=name, email=email, 
+                                   error="Please fill all fields")
+        
+        # Create or update user
+        user_id = create_google_user(name, email, gender, dob)
+        
+        if user_id:
+            # Clear pending signup
+            session.pop('google_signup_pending', None)
+            session.pop('google_name', None)
+            session.pop('google_email', None)
+            
+            # Set user session
+            session['user_id'] = user_id
+            session['user_name'] = name
+            session['user_email'] = email
+            session['auth_provider'] = 'google'
+            
+            return redirect(url_for('onboarding'))
+        else:
+            return render_template('google_complete_profile.html',
+                                   name=name, email=email,
+                                   error="Failed to create account")
+    
+    return render_template('google_complete_profile.html', name=name, email=email)
+
+
 @app.route('/onboarding', methods=['GET', 'POST'])
 def onboarding():
     """Onboarding page for health profile."""
@@ -360,10 +404,11 @@ def api_chat():
         return jsonify({'error': 'No message provided'}), 400
     
     # Get or create chat session
+    is_new_session = False
     if not session.get('current_session_id'):
-        # Create new session with first message as title
-        title = message[:50] + "..." if len(message) > 50 else message
-        session_id = create_chat_session(session['user_id'], title)
+        is_new_session = True
+        # Create new session with temporary title
+        session_id = create_chat_session(session['user_id'], "New Chat")
         session['current_session_id'] = session_id
     else:
         session_id = session['current_session_id']
@@ -387,6 +432,11 @@ def api_chat():
     
     # Save AI response to database
     save_chat_message(session['user_id'], response, 'sage', session_id)
+    
+    # Generate meaningful title for new sessions
+    if is_new_session:
+        title = generate_chat_title(message)
+        update_session_title(session_id, title)
     
     return jsonify({
         'response': response,
@@ -648,25 +698,29 @@ def google_callback():
         google_email = userinfo.get('email')
         google_name = userinfo.get('name', google_email.split('@')[0])
         
-        # Create or get existing user
-        user_id = create_google_user(google_name, google_email)
+        # Check if user already exists
+        existing_user = get_user_by_email(google_email)
         
-        if user_id:
-            # Set session
-            session['user_id'] = user_id
-            session['user_name'] = google_name
-            session['user_email'] = google_email
+        if existing_user:
+            # Existing user - log them in
+            session['user_id'] = existing_user['id']
+            session['user_name'] = existing_user['name']
+            session['user_email'] = existing_user['email']
             session['auth_provider'] = 'google'
             
             # Check if health profile exists
-            profile = get_health_profile(user_id)
+            profile = get_health_profile(existing_user['id'])
             if profile:
                 session['profile_complete'] = True
                 return redirect(url_for('chat'))
             else:
                 return redirect(url_for('onboarding'))
         else:
-            return redirect(url_for('login', error='Failed to create account'))
+            # New user - need to collect additional info
+            session['google_signup_pending'] = True
+            session['google_name'] = google_name
+            session['google_email'] = google_email
+            return redirect(url_for('google_complete_profile'))
             
     except Exception as e:
         print(f"Google OAuth error: {e}")
