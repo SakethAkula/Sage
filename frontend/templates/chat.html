@@ -91,22 +91,36 @@
                     </div>
                 </div>
                 <div class="chat-header-right">
-                    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
-                        <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="5"></circle>
-                            <line x1="12" y1="1" x2="12" y2="3"></line>
-                            <line x1="12" y1="21" x2="12" y2="23"></line>
-                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                            <line x1="1" y1="12" x2="3" y2="12"></line>
-                            <line x1="21" y1="12" x2="23" y2="12"></line>
-                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                        </svg>
-                        <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                        </svg>
-                    </button>
+                    <!-- Profile Icon -->
+                    <div class="profile-dropdown">
+                        <button class="profile-btn" onclick="toggleProfileMenu()">
+                            <div class="profile-avatar">
+                                {{ session.user_name[0].upper() if session.user_name else 'U' }}
+                            </div>
+                        </button>
+                        <div class="profile-menu" id="profileMenu">
+                            <div class="profile-info">
+                                <div class="profile-name">{{ session.user_name or 'User' }}</div>
+                                <div class="profile-email">{{ session.user_email or '' }}</div>
+                            </div>
+                            <div class="profile-menu-divider"></div>
+                            <a href="/onboarding" class="profile-menu-item">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                Edit Health Profile
+                            </a>
+                            <a href="/logout" class="profile-menu-item logout">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </header>
             
@@ -117,7 +131,7 @@
                     <!-- Welcome Screen -->
                     <div class="welcome-screen" id="welcomeScreen">
                         <div class="welcome-content">
-                            <h1 class="welcome-title">Hi{{ ', ' + profile.name.split()[0] if profile and profile.name else '' }}! I'm Sage</h1>
+                            <h1 class="welcome-title">Hi{{ ', ' + session.user_name.split()[0] if session.user_name else '' }}! I'm Sage</h1>
                             <p class="welcome-subtitle">Your personal health assistant. Ask me about symptoms, remedies, or general health questions.</p>
                         </div>
                     </div>
@@ -193,5 +207,21 @@
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
     
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    <script>
+        // Profile dropdown toggle
+        function toggleProfileMenu() {
+            const menu = document.getElementById('profileMenu');
+            menu.classList.toggle('show');
+        }
+        
+        // Close profile menu when clicking outside
+        document.addEventListener('click', function(e) {
+            const dropdown = document.querySelector('.profile-dropdown');
+            const menu = document.getElementById('profileMenu');
+            if (dropdown && !dropdown.contains(e.target)) {
+                menu.classList.remove('show');
+            }
+        });
+    </script>
 </body>
 </html>

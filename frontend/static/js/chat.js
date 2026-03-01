@@ -316,7 +316,7 @@ function handleKeyPress(event) {
 
 // ===== INITIALIZE =====
 document.addEventListener('DOMContentLoaded', function() {
-    loadTheme();
+    
     loadChatSessions();
     document.getElementById('messageInput').focus();
 });
