@@ -726,6 +726,201 @@ def google_callback():
         print(f"Google OAuth error: {e}")
         return redirect(url_for('login', error='Authentication failed'))
 
+# ============== MEDICINE REMINDER ROUTES ==============
+# Add these routes to your existing app.py
+
+@app.route('/medicines')
+def medicines_page():
+    """Medicine reminders page."""
+    if not session.get('user_id'):
+        return redirect(url_for('login'))
+    return render_template('medicines.html')
+
+
+@app.route('/api/medicines/search')
+def api_search_medicines():
+    """Search medicines from master database (autocomplete)."""
+    query = request.args.get('q', '').strip()
+    
+    if len(query) < 2:
+        return jsonify({'medicines': []})
+    
+    connection = get_connection()
+    if not connection:
+        return jsonify({'medicines': [], 'error': 'Database error'}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        # Search by name (LIKE query for autocomplete)
+        search_query = """
+            SELECT name, manufacturer, pack_size, composition1, price
+            FROM medicines_master 
+            WHERE name LIKE %s AND is_discontinued = FALSE
+            ORDER BY 
+                CASE WHEN name LIKE %s THEN 0 ELSE 1 END,
+                name
+            LIMIT 15
+        """
+        cursor.execute(search_query, (f'%{query}%', f'{query}%'))
+        medicines = cursor.fetchall()
+        
+        return jsonify({'medicines': medicines})
+        
+    except Exception as e:
+        print(f"Medicine search error: {e}")
+        return jsonify({'medicines': [], 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@app.route('/api/medications', methods=['GET', 'POST'])
+def api_medications():
+    """Get all user medications or add a new one."""
+    if not session.get('user_id'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    user_id = session['user_id']
+    
+    if request.method == 'POST':
+        data = request.json
+        
+        medicine_name = data.get('medicine_name')
+        dosage = data.get('dosage', '')
+        times = data.get('times', [])
+        notes = data.get('notes', '')
+        
+        if not medicine_name:
+            return jsonify({'error': 'Medicine name is required'}), 400
+        
+        connection = get_connection()
+        if not connection:
+            return jsonify({'error': 'Database error'}), 500
+        
+        try:
+            cursor = connection.cursor()
+            
+            query = """
+                INSERT INTO user_medications (user_id, medicine_name, dosage, times, notes)
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            import json
+            cursor.execute(query, (user_id, medicine_name, dosage, json.dumps(times), notes))
+            connection.commit()
+            
+            return jsonify({'success': True, 'id': cursor.lastrowid})
+            
+        except Exception as e:
+            print(f"Add medication error: {e}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            cursor.close()
+            connection.close()
+    
+    # GET - fetch all medications for user
+    connection = get_connection()
+    if not connection:
+        return jsonify({'medications': [], 'error': 'Database error'}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        query = """
+            SELECT id, medicine_name, dosage, times, notes, active, created_at
+            FROM user_medications 
+            WHERE user_id = %s AND active = TRUE
+            ORDER BY created_at DESC
+        """
+        cursor.execute(query, (user_id,))
+        medications = cursor.fetchall()
+        
+        # Parse JSON times
+        import json
+        for med in medications:
+            if med['times']:
+                try:
+                    med['times'] = json.loads(med['times'])
+                except:
+                    med['times'] = []
+            else:
+                med['times'] = []
+            if med['created_at']:
+                med['created_at'] = med['created_at'].isoformat()
+        
+        return jsonify({'medications': medications})
+        
+    except Exception as e:
+        print(f"Get medications error: {e}")
+        return jsonify({'medications': [], 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@app.route('/api/medications/<int:med_id>', methods=['GET', 'PUT', 'DELETE'])
+def api_medication(med_id):
+    """Get, update, or delete a specific medication."""
+    if not session.get('user_id'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    user_id = session['user_id']
+    connection = get_connection()
+    if not connection:
+        return jsonify({'error': 'Database error'}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        # Verify ownership
+        cursor.execute("SELECT id FROM user_medications WHERE id = %s AND user_id = %s", (med_id, user_id))
+        if not cursor.fetchone():
+            return jsonify({'error': 'Medication not found'}), 404
+        
+        if request.method == 'DELETE':
+            cursor.execute("DELETE FROM user_medications WHERE id = %s AND user_id = %s", (med_id, user_id))
+            connection.commit()
+            return jsonify({'success': True})
+        
+        elif request.method == 'PUT':
+            data = request.json
+            
+            import json
+            query = """
+                UPDATE user_medications 
+                SET medicine_name = %s, dosage = %s, times = %s, notes = %s
+                WHERE id = %s AND user_id = %s
+            """
+            cursor.execute(query, (
+                data.get('medicine_name'),
+                data.get('dosage', ''),
+                json.dumps(data.get('times', [])),
+                data.get('notes', ''),
+                med_id,
+                user_id
+            ))
+            connection.commit()
+            return jsonify({'success': True})
+        
+        else:  # GET
+            cursor.execute("SELECT * FROM user_medications WHERE id = %s AND user_id = %s", (med_id, user_id))
+            med = cursor.fetchone()
+            
+            import json
+            if med and med['times']:
+                try:
+                    med['times'] = json.loads(med['times'])
+                except:
+                    med['times'] = []
+            
+            return jsonify(med)
+        
+    except Exception as e:
+        print(f"Medication operation error: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        connection.close()
 
 if __name__ == '__main__':
     print("\n" + "="*50)

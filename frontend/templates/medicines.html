@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sage - Medicine Reminders</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #d5f5f0 0%, #e8faf7 50%, #d0f0eb 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.6);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 12px;
+            color: #3dbda7;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.9); }
+        .header h1 {
+            color: #2c4a4a;
+            font-size: 1.6rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .add-btn {
+            background: linear-gradient(135deg, #3dbda7 0%, #2d8a7a 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(61, 189, 167, 0.4);
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 5px 30px rgba(0,0,0,0.05);
+        }
+        
+        /* Medicine List */
+        .medicine-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            transition: all 0.2s;
+        }
+        .medicine-item:hover {
+            background: rgba(255,255,255,0.8);
+            transform: translateX(5px);
+        }
+        .medicine-info {
+            flex: 1;
+        }
+        .medicine-name {
+            font-weight: 600;
+            color: #2c4a4a;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        .medicine-details {
+            color: #5a7a7a;
+            font-size: 0.9rem;
+        }
+        .medicine-times {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .time-badge {
+            background: linear-gradient(135deg, #3dbda7 0%, #2d8a7a 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .time-badge.morning { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+        .time-badge.afternoon { background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); }
+        .time-badge.evening { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+        .time-badge.night { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        
+        .medicine-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .action-btn {
+            background: rgba(255,255,255,0.8);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .action-btn:hover { background: white; transform: scale(1.1); }
+        .action-btn.delete:hover { background: #ffe5e5; }
+        .action-btn svg { width: 18px; height: 18px; }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #5a7a7a;
+        }
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        .empty-state h3 {
+            color: #2c4a4a;
+            margin-bottom: 10px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 25px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .modal-header h2 {
+            color: #2c4a4a;
+            font-size: 1.4rem;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            padding: 5px;
+        }
+        .close-btn:hover { color: #333; }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .form-group label {
+            display: block;
+            color: #5a7a7a;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #3dbda7;
+        }
+        
+        /* Autocomplete */
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .autocomplete-list.show { display: block; }
+        .autocomplete-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+        }
+        .autocomplete-item:hover { background: #f0f9f7; }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item .med-name {
+            font-weight: 500;
+            color: #2c4a4a;
+        }
+        .autocomplete-item .med-info {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 3px;
+        }
+        .autocomplete-loading {
+            padding: 15px;
+            text-align: center;
+            color: #888;
+        }
+
+        /* Time Checkboxes */
+        .time-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .time-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            background: #f8f8f8;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .time-option:hover { background: #f0f9f7; }
+        .time-option input { display: none; }
+        .time-option input:checked + .time-check {
+            background: #3dbda7;
+            border-color: #3dbda7;
+        }
+        .time-option input:checked + .time-check svg { opacity: 1; }
+        .time-check {
+            width: 22px;
+            height: 22px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .time-check svg {
+            width: 14px;
+            height: 14px;
+            color: white;
+            opacity: 0;
+        }
+        .time-label {
+            font-weight: 500;
+            color: #2c4a4a;
+        }
+        .time-label span {
+            display: block;
+            font-size: 0.75rem;
+            color: #888;
+            font-weight: 400;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #3dbda7 0%, #2d8a7a 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(61, 189, 167, 0.4);
+        }
+
+        /* Today's Schedule */
+        .schedule-section {
+            margin-bottom: 30px;
+        }
+        .schedule-section h2 {
+            color: #2c4a4a;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .schedule-card {
+            background: rgba(255,255,255,0.7);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .schedule-card h4 {
+            color: #5a7a7a;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        .schedule-card .count {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3dbda7;
+        }
+        .schedule-card.taken .count { color: #27ae60; }
+        .schedule-card.pending .count { color: #f39c12; }
+        .schedule-card.missed .count { color: #e74c3c; }
+
+        @media (max-width: 600px) {
+            .header { flex-direction: column; align-items: flex-start; }
+            .time-options { grid-template-columns: 1fr; }
+            .medicine-item { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .medicine-actions { width: 100%; justify-content: flex-end; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <a href="/chat" class="back-btn">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back
+                </a>
+                <h1>💊 Medicine Reminders</h1>
+            </div>
+            <button class="add-btn" onclick="openModal()">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Medicine
+            </button>
+        </div>
+
+        <!-- Today's Schedule Summary -->
+        <div class="schedule-section">
+            <h2>📅 Today's Schedule</h2>
+            <div class="schedule-grid">
+                <div class="schedule-card taken">
+                    <h4>✅ Taken</h4>
+                    <div class="count" id="takenCount">0</div>
+                </div>
+                <div class="schedule-card pending">
+                    <h4>⏰ Pending</h4>
+                    <div class="count" id="pendingCount">0</div>
+                </div>
+                <div class="schedule-card missed">
+                    <h4>❌ Missed</h4>
+                    <div class="count" id="missedCount">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medicine List -->
+        <div class="card">
+            <div id="medicineList">
+                <!-- Medicines loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Medicine</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="medicineForm" onsubmit="saveMedicine(event)">
+                <input type="hidden" id="editId" value="">
+                
+                <div class="form-group">
+                    <label>Medicine Name *</label>
+                    <input type="text" id="medicineName" placeholder="Start typing to search..." autocomplete="off" required>
+                    <div class="autocomplete-list" id="autocompleteList"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Dosage</label>
+                    <input type="text" id="dosage" placeholder="e.g., 1 tablet, 5ml, etc.">
+                </div>
+                
+                <div class="form-group">
+                    <label>When to take *</label>
+                    <div class="time-options">
+                        <label class="time-option">
+                            <input type="checkbox" name="times" value="morning">
+                            <span class="time-check">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </span>
+                            <span class="time-label">🌅 Morning<span>8:00 AM</span></span>
+                        </label>
+                        <label class="time-option">
+                            <input type="checkbox" name="times" value="afternoon">
+                            <span class="time-check">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </span>
+                            <span class="time-label">☀️ Afternoon<span>1:00 PM</span></span>
+                        </label>
+                        <label class="time-option">
+                            <input type="checkbox" name="times" value="evening">
+                            <span class="time-check">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </span>
+                            <span class="time-label">🌆 Evening<span>6:00 PM</span></span>
+                        </label>
+                        <label class="time-option">
+                            <input type="checkbox" name="times" value="night">
+                            <span class="time-check">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </span>
+                            <span class="time-label">🌙 Night<span>10:00 PM</span></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <textarea id="notes" rows="2" placeholder="e.g., Take after food"></textarea>
+                </div>
+                
+                <button type="submit" class="submit-btn">Save Medicine</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let medications = [];
+        let searchTimeout = null;
+
+        // Load medications on page load
+        document.addEventListener('DOMContentLoaded', loadMedications);
+
+        // Autocomplete setup
+        const medicineInput = document.getElementById('medicineName');
+        const autocompleteList = document.getElementById('autocompleteList');
+
+        medicineInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            clearTimeout(searchTimeout);
+            
+            if (query.length < 2) {
+                autocompleteList.classList.remove('show');
+                return;
+            }
+            
+            autocompleteList.innerHTML = '<div class="autocomplete-loading">Searching...</div>';
+            autocompleteList.classList.add('show');
+            
+            searchTimeout = setTimeout(() => {
+                searchMedicines(query);
+            }, 300);
+        });
+
+        medicineInput.addEventListener('blur', function() {
+            setTimeout(() => autocompleteList.classList.remove('show'), 200);
+        });
+
+        async function searchMedicines(query) {
+            try {
+                const response = await fetch(`/api/medicines/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                if (data.medicines && data.medicines.length > 0) {
+                    autocompleteList.innerHTML = data.medicines.map(med => `
+                        <div class="autocomplete-item" onclick="selectMedicine('${escapeHtml(med.name)}', '${escapeHtml(med.pack_size || '')}')">
+                            <div class="med-name">${highlightMatch(med.name, query)}</div>
+                            <div class="med-info">${med.manufacturer || ''} ${med.pack_size ? '• ' + med.pack_size : ''}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    autocompleteList.innerHTML = `
+                        <div class="autocomplete-item" onclick="selectMedicine('${escapeHtml(query)}', '')">
+                            <div class="med-name">Use "${query}"</div>
+                            <div class="med-info">Add as custom medicine</div>
+                        </div>
+                    `;
+                }
+                autocompleteList.classList.add('show');
+            } catch (error) {
+                console.error('Search error:', error);
+                autocompleteList.innerHTML = '<div class="autocomplete-loading">Search failed</div>';
+            }
+        }
+
+        function selectMedicine(name, packSize) {
+            document.getElementById('medicineName').value = name;
+            if (packSize && !document.getElementById('dosage').value) {
+                document.getElementById('dosage').value = packSize;
+            }
+            autocompleteList.classList.remove('show');
+        }
+
+        function highlightMatch(text, query) {
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<strong style="color:#3dbda7">$1</strong>');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML.replace(/'/g, "\\'");
+        }
+
+        // Modal functions
+        function openModal(id = null) {
+            document.getElementById('modalOverlay').classList.add('show');
+            document.getElementById('modalTitle').textContent = id ? 'Edit Medicine' : 'Add Medicine';
+            document.getElementById('editId').value = id || '';
+            
+            if (id) {
+                const med = medications.find(m => m.id === id);
+                if (med) {
+                    document.getElementById('medicineName').value = med.medicine_name;
+                    document.getElementById('dosage').value = med.dosage || '';
+                    document.getElementById('notes').value = med.notes || '';
+                    
+                    // Set time checkboxes
+                    document.querySelectorAll('input[name="times"]').forEach(cb => {
+                        cb.checked = med.times && med.times.includes(cb.value);
+                    });
+                }
+            } else {
+                document.getElementById('medicineForm').reset();
+            }
+        }
+
+        function closeModal(event) {
+            if (!event || event.target === document.getElementById('modalOverlay')) {
+                document.getElementById('modalOverlay').classList.remove('show');
+                document.getElementById('medicineForm').reset();
+            }
+        }
+
+        // Save medicine
+        async function saveMedicine(event) {
+            event.preventDefault();
+            
+            const times = Array.from(document.querySelectorAll('input[name="times"]:checked')).map(cb => cb.value);
+            
+            if (times.length === 0) {
+                alert('Please select at least one time');
+                return;
+            }
+            
+            const data = {
+                medicine_name: document.getElementById('medicineName').value,
+                dosage: document.getElementById('dosage').value,
+                times: times,
+                notes: document.getElementById('notes').value
+            };
+            
+            const editId = document.getElementById('editId').value;
+            const url = editId ? `/api/medications/${editId}` : '/api/medications';
+            const method = editId ? 'PUT' : 'POST';
+            
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    closeModal();
+                    loadMedications();
+                } else {
+                    alert('Failed to save medicine');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('Failed to save medicine');
+            }
+        }
+
+        // Load medications
+        async function loadMedications() {
+            try {
+                const response = await fetch('/api/medications');
+                const data = await response.json();
+                medications = data.medications || [];
+                renderMedications();
+                updateScheduleCounts();
+            } catch (error) {
+                console.error('Load error:', error);
+            }
+        }
+
+        // Render medications list
+        function renderMedications() {
+            const list = document.getElementById('medicineList');
+            
+            if (medications.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/>
+                            <path d="M12 8v8M8 12h8"/>
+                        </svg>
+                        <h3>No medicines added yet</h3>
+                        <p>Add your first medicine reminder to get started</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = medications.map(med => `
+                <div class="medicine-item">
+                    <div class="medicine-info">
+                        <div class="medicine-name">${med.medicine_name}</div>
+                        <div class="medicine-details">${med.dosage || 'No dosage specified'}</div>
+                        <div class="medicine-times">
+                            ${(med.times || []).map(t => `<span class="time-badge ${t}">${getTimeLabel(t)}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="medicine-actions">
+                        <button class="action-btn" onclick="openModal(${med.id})" title="Edit">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#3dbda7" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete" onclick="deleteMedicine(${med.id})" title="Delete">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getTimeLabel(time) {
+            const labels = {
+                morning: '🌅 Morning',
+                afternoon: '☀️ Afternoon', 
+                evening: '🌆 Evening',
+                night: '🌙 Night'
+            };
+            return labels[time] || time;
+        }
+
+        // Delete medicine
+        async function deleteMedicine(id) {
+            if (!confirm('Are you sure you want to delete this medicine?')) return;
+            
+            try {
+                const response = await fetch(`/api/medications/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadMedications();
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+            }
+        }
+
+        // Update schedule counts
+        function updateScheduleCounts() {
+            // Simplified counts for now
+            let total = 0;
+            medications.forEach(med => {
+                total += (med.times || []).length;
+            });
+            document.getElementById('pendingCount').textContent = total;
+            document.getElementById('takenCount').textContent = '0';
+            document.getElementById('missedCount').textContent = '0';
+        }
+    </script>
+</body>
+</html>
