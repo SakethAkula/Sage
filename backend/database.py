@@ -8,16 +8,38 @@ from mysql.connector import Error
 import bcrypt
 import json
 import secrets
-from db_config import DB_CONFIG
+import os
+
+# Get DB config from environment
+DB_CONFIG = {
+    'host': os.environ.get('DB_HOST', 'localhost'),
+    'user': os.environ.get('DB_USER', 'root'),
+    'password': os.environ.get('DB_PASSWORD', ''),
+    'database': os.environ.get('DB_NAME', 'sage_db'),
+    'charset': 'utf8mb4',
+    'autocommit': True,
+    'connect_timeout': 10
+}
+
+# Cloud SQL Unix Socket (if provided)
+CLOUD_SQL_CONNECTION_NAME = os.environ.get('CLOUD_SQL_CONNECTION_NAME', None)
 
 
 def get_connection():
     """Create and return a database connection."""
     try:
-        connection = mysql.connector.connect(**DB_CONFIG)
+        config = DB_CONFIG.copy()
+        
+        # If running on Cloud Run with Cloud SQL, use Unix socket
+        if CLOUD_SQL_CONNECTION_NAME:
+            config['unix_socket'] = f'/cloudsql/{CLOUD_SQL_CONNECTION_NAME}'
+            config.pop('host', None)  # Remove host when using socket
+        
+        connection = mysql.connector.connect(**config)
         return connection
     except Error as e:
         print(f"Database connection error: {e}")
+        print(f"Config used: host={config.get('host')}, user={config.get('user')}, database={config.get('database')}")
         return None
 
 
@@ -30,6 +52,7 @@ def create_user(name, email, password, gender=None, dob=None):
     """
     connection = get_connection()
     if not connection:
+        print("Failed to get database connection in create_user")
         return None
     
     try:
@@ -109,6 +132,7 @@ def verify_user(email, password):
     """
     connection = get_connection()
     if not connection:
+        print("Failed to get database connection in verify_user")
         return None
     
     try:
