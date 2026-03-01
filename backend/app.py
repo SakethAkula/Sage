@@ -1,6 +1,7 @@
 """
 Sage - AI Healthcare Chatbot
 Backend: Flask Server with MySQL Authentication & Google OAuth
+Updated with Email OTP Verification and Password Reset
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
@@ -17,20 +18,21 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from database import (
     create_user, verify_user, get_user_by_id, get_user_by_email,
-    create_google_user,
+    create_google_user, update_user_password,
     save_health_profile, get_health_profile,
     create_chat_session, get_chat_sessions, update_session_title, delete_chat_session,
     save_chat_message, get_chat_history, clear_chat_history
 )
 from db_config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
 from sage_ai import get_sage_instance, clear_sage_instance
+from email_utils import send_verification_otp, send_password_reset_otp, verify_otp
 
 app = Flask(
     __name__,
     template_folder='../frontend/templates',
     static_folder='../frontend/static'
 )
-app.secret_key = secrets.token_hex(32)
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 CORS(app)
 
 # File upload configuration
@@ -96,7 +98,7 @@ def login():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    """Signup page."""
+    """Signup page - Step 1: Collect info and send OTP."""
     if request.method == 'POST':
         name = request.form.get('name')
         email = request.form.get('email')
@@ -115,30 +117,168 @@ def signup():
         if len(password) < 6:
             return render_template('signup.html', error="Password must be at least 6 characters")
         
-        # Create user
-        user_id = create_user(name, email, password, gender, dob if dob else None)
+        # Check if email already exists
+        existing_user = get_user_by_email(email)
+        if existing_user:
+            return render_template('signup.html', error="Email already registered. Please login.")
         
-        if user_id:
-            # Set session
-            session['user_id'] = user_id
-            session['user_name'] = name
-            session['user_email'] = email
-            return redirect(url_for('onboarding'))
+        # Store signup data in session and send OTP
+        session['signup_data'] = {
+            'name': name,
+            'email': email,
+            'gender': gender,
+            'dob': dob,
+            'password': password
+        }
+        
+        # Send OTP
+        success, otp = send_verification_otp(email)
+        if success:
+            return redirect(url_for('verify_email'))
         else:
-            return render_template('signup.html', error="Email already registered")
+            return render_template('signup.html', error="Failed to send verification email. Please try again.")
     
     return render_template('signup.html')
 
 
+@app.route('/verify-email', methods=['GET', 'POST'])
+def verify_email():
+    """Email verification page."""
+    if 'signup_data' not in session:
+        return redirect(url_for('signup'))
+    
+    email = session['signup_data']['email']
+    
+    if request.method == 'POST':
+        otp = request.form.get('otp')
+        
+        if not otp:
+            return render_template('verify_email.html', email=email, error="Please enter the OTP")
+        
+        # Verify OTP
+        valid, message = verify_otp(email, otp, "verification")
+        
+        if valid:
+            # Create user
+            data = session['signup_data']
+            user_id = create_user(
+                data['name'], 
+                data['email'], 
+                data['password'], 
+                data.get('gender'), 
+                data.get('dob') if data.get('dob') else None
+            )
+            
+            if user_id:
+                # Clear signup data
+                session.pop('signup_data', None)
+                
+                # Set user session
+                session['user_id'] = user_id
+                session['user_name'] = data['name']
+                session['user_email'] = data['email']
+                
+                return redirect(url_for('onboarding'))
+            else:
+                return render_template('verify_email.html', email=email, error="Failed to create account")
+        else:
+            return render_template('verify_email.html', email=email, error=message)
+    
+    return render_template('verify_email.html', email=email)
+
+
+@app.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    """Resend OTP for email verification."""
+    if 'signup_data' not in session:
+        return jsonify({'error': 'No signup in progress'}), 400
+    
+    email = session['signup_data']['email']
+    success, otp = send_verification_otp(email)
+    
+    if success:
+        return jsonify({'success': True, 'message': 'OTP sent successfully'})
+    else:
+        return jsonify({'error': 'Failed to send OTP'}), 500
+
+
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
-    """Forgot password page."""
+    """Forgot password - Step 1: Enter email."""
     if request.method == 'POST':
         email = request.form.get('email')
-        # TODO: Implement password reset email
-        return render_template('forgot_password.html', message="If this email exists, a reset link has been sent.")
+        
+        if not email:
+            return render_template('forgot_password.html', error="Please enter your email")
+        
+        # Check if user exists
+        user = get_user_by_email(email)
+        if not user:
+            return render_template('forgot_password.html', error="No account found with this email")
+        
+        # Send OTP
+        success, otp = send_password_reset_otp(email)
+        if success:
+            session['reset_email'] = email
+            return redirect(url_for('reset_password'))
+        else:
+            return render_template('forgot_password.html', error="Failed to send reset email. Please try again.")
     
     return render_template('forgot_password.html')
+
+
+@app.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    """Reset password - Step 2: Enter OTP and new password."""
+    if 'reset_email' not in session:
+        return redirect(url_for('forgot_password'))
+    
+    email = session['reset_email']
+    
+    if request.method == 'POST':
+        otp = request.form.get('otp')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if not all([otp, new_password, confirm_password]):
+            return render_template('reset_password.html', email=email, error="Please fill all fields")
+        
+        if new_password != confirm_password:
+            return render_template('reset_password.html', email=email, error="Passwords do not match")
+        
+        if len(new_password) < 6:
+            return render_template('reset_password.html', email=email, error="Password must be at least 6 characters")
+        
+        # Verify OTP
+        valid, message = verify_otp(email, otp, "reset")
+        
+        if valid:
+            # Update password
+            success = update_user_password(email, new_password)
+            if success:
+                session.pop('reset_email', None)
+                return redirect(url_for('login', success="Password reset successful. Please login."))
+            else:
+                return render_template('reset_password.html', email=email, error="Failed to update password")
+        else:
+            return render_template('reset_password.html', email=email, error=message)
+    
+    return render_template('reset_password.html', email=email)
+
+
+@app.route('/resend-reset-otp', methods=['POST'])
+def resend_reset_otp():
+    """Resend OTP for password reset."""
+    if 'reset_email' not in session:
+        return jsonify({'error': 'No reset in progress'}), 400
+    
+    email = session['reset_email']
+    success, otp = send_password_reset_otp(email)
+    
+    if success:
+        return jsonify({'success': True, 'message': 'OTP sent successfully'})
+    else:
+        return jsonify({'error': 'Failed to send OTP'}), 500
 
 
 @app.route('/onboarding', methods=['GET', 'POST'])

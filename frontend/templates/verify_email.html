@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sage - Verify Email</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <style>
+        .otp-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .otp-input {
+            width: 50px;
+            height: 55px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            border: 2px solid rgba(61, 189, 167, 0.3);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.5);
+            color: #2c4a4a;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .otp-input:focus {
+            border-color: #3dbda7;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .email-sent-info {
+            text-align: center;
+            color: #5a7a7a;
+            margin-bottom: 20px;
+        }
+        .email-highlight {
+            color: #3dbda7;
+            font-weight: 600;
+        }
+        .resend-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .resend-btn {
+            background: none;
+            border: none;
+            color: #3dbda7;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: underline;
+        }
+        .resend-btn:disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+        .timer {
+            color: #999;
+            font-size: 0.85rem;
+        }
+        .error-message {
+            background: rgba(231, 76, 60, 0.15);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        .success-message {
+            background: rgba(39, 174, 96, 0.15);
+            border: 1px solid rgba(39, 174, 96, 0.3);
+            color: #27ae60;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="bg-panel panel-left">
+            <svg class="neural-svg" viewBox="0 0 200 300">
+                <circle cx="40" cy="50" r="5" fill="#7ab5a6"/>
+                <circle cx="100" cy="30" r="5" fill="#7ab5a6"/>
+                <circle cx="160" cy="60" r="5" fill="#7ab5a6"/>
+                <circle cx="30" cy="120" r="5" fill="#7ab5a6"/>
+                <circle cx="90" cy="100" r="5" fill="#7ab5a6"/>
+                <circle cx="150" cy="130" r="5" fill="#7ab5a6"/>
+            </svg>
+        </div>
+        <div class="plant-decoration">🌿</div>
+        <div class="sparkle">✦</div>
+        <div class="glass-card">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 50 50" width="45" height="45">
+                        <rect x="18" y="8" width="14" height="34" rx="3" fill="#3dbda7"/>
+                        <rect x="8" y="18" width="34" height="14" rx="3" fill="#3dbda7"/>
+                        <ellipse cx="38" cy="12" rx="8" ry="5" fill="#2d8a7a" transform="rotate(45, 38, 12)"/>
+                    </svg>
+                </div>
+                <span class="logo-text">sage</span>
+            </div>
+            <p class="logo-subtitle">AI Healthcare Chatbot System</p>
+            <h1 class="welcome-title">Verify Email</h1>
+            
+            {% if error %}
+            <div class="error-message">{{ error }}</div>
+            {% endif %}
+            
+            <div class="email-sent-info">
+                <p>We've sent a 6-digit OTP to</p>
+                <p class="email-highlight">{{ email }}</p>
+            </div>
+            
+            <form class="login-form" action="/verify-email" method="POST" id="otpForm">
+                <div class="otp-inputs">
+                    <input type="text" class="otp-input" maxlength="1" data-index="0" autofocus>
+                    <input type="text" class="otp-input" maxlength="1" data-index="1">
+                    <input type="text" class="otp-input" maxlength="1" data-index="2">
+                    <input type="text" class="otp-input" maxlength="1" data-index="3">
+                    <input type="text" class="otp-input" maxlength="1" data-index="4">
+                    <input type="text" class="otp-input" maxlength="1" data-index="5">
+                </div>
+                <input type="hidden" name="otp" id="otpHidden">
+                <button type="submit" class="login-btn">VERIFY</button>
+            </form>
+            
+            <div class="resend-section">
+                <p class="timer" id="timer">Resend OTP in <span id="countdown">60</span>s</p>
+                <button class="resend-btn" id="resendBtn" onclick="resendOTP()" disabled>Resend OTP</button>
+            </div>
+            
+            <div class="links-row">
+                <a href="/signup">← Back to Sign Up</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // OTP input handling
+        const inputs = document.querySelectorAll('.otp-input');
+        const hiddenInput = document.getElementById('otpHidden');
+        const form = document.getElementById('otpForm');
+        
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+                if (value && index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                }
+                updateHiddenInput();
+            });
+            
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+            
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').slice(0, 6);
+                pastedData.split('').forEach((char, i) => {
+                    if (inputs[i]) {
+                        inputs[i].value = char;
+                    }
+                });
+                updateHiddenInput();
+                if (pastedData.length === 6) {
+                    inputs[5].focus();
+                }
+            });
+        });
+        
+        function updateHiddenInput() {
+            let otp = '';
+            inputs.forEach(input => {
+                otp += input.value;
+            });
+            hiddenInput.value = otp;
+        }
+        
+        // Countdown timer
+        let countdown = 60;
+        const timerElement = document.getElementById('timer');
+        const countdownElement = document.getElementById('countdown');
+        const resendBtn = document.getElementById('resendBtn');
+        
+        const timer = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            if (countdown <= 0) {
+                clearInterval(timer);
+                timerElement.style.display = 'none';
+                resendBtn.disabled = false;
+            }
+        }, 1000);
+        
+        function resendOTP() {
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Sending...';
+            
+            fetch('/resend-otp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('OTP sent successfully!');
+                    countdown = 60;
+                    timerElement.style.display = 'block';
+                    resendBtn.textContent = 'Resend OTP';
+                    const newTimer = setInterval(() => {
+                        countdown--;
+                        countdownElement.textContent = countdown;
+                        if (countdown <= 0) {
+                            clearInterval(newTimer);
+                            timerElement.style.display = 'none';
+                            resendBtn.disabled = false;
+                        }
+                    }, 1000);
+                } else {
+                    alert('Failed to send OTP. Please try again.');
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = 'Resend OTP';
+                }
+            })
+            .catch(() => {
+                alert('Failed to send OTP. Please try again.');
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Resend OTP';
+            });
+        }
+    </script>
+</body>
+</html>

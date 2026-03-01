@@ -1,6 +1,7 @@
 """
 Sage - Database Helper
 Handles all database operations for users, profiles, and chat history
+Updated with password reset functionality
 """
 
 import mysql.connector
@@ -152,6 +153,32 @@ def verify_user(email, password):
     except Error as e:
         print(f"Error verifying user: {e}")
         return None
+    finally:
+        cursor.close()
+        connection.close()
+
+
+def update_user_password(email, new_password):
+    """Update user's password."""
+    connection = get_connection()
+    if not connection:
+        return False
+    
+    try:
+        cursor = connection.cursor()
+        
+        # Hash the new password
+        hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+        
+        query = "UPDATE users SET password = %s WHERE email = %s"
+        cursor.execute(query, (hashed_password.decode('utf-8'), email))
+        connection.commit()
+        
+        return cursor.rowcount > 0
+        
+    except Error as e:
+        print(f"Error updating password: {e}")
+        return False
     finally:
         cursor.close()
         connection.close()
