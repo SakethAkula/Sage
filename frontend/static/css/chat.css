@@ -730,7 +730,7 @@ body {
 
 /* Sidebar Credit */
 .sidebar-credit {
-    color: var(--text-muted);
+    color: white;
     font-size: 0.8rem;
     text-align: center;
     padding: 10px;
