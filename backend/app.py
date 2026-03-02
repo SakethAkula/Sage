@@ -12,6 +12,7 @@ import sys
 import secrets
 import requests
 import base64
+import json
 
 # Add backend directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -21,7 +22,7 @@ from database import (
     create_google_user, update_user_password, update_user_details,
     save_health_profile, get_health_profile,
     create_chat_session, get_chat_sessions, update_session_title, delete_chat_session,
-    save_chat_message, get_chat_history, clear_chat_history
+    save_chat_message, get_chat_history, clear_chat_history,get_connection
 )
 from db_config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
 from sage_ai import get_sage_instance, clear_sage_instance, generate_chat_title
@@ -885,7 +886,6 @@ def api_medication(med_id):
         elif request.method == 'PUT':
             data = request.json
             
-            import json
             query = """
                 UPDATE user_medications 
                 SET medicine_name = %s, dosage = %s, times = %s, notes = %s
@@ -906,7 +906,7 @@ def api_medication(med_id):
             cursor.execute("SELECT * FROM user_medications WHERE id = %s AND user_id = %s", (med_id, user_id))
             med = cursor.fetchone()
             
-            import json
+
             if med and med['times']:
                 try:
                     med['times'] = json.loads(med['times'])
@@ -918,6 +918,67 @@ def api_medication(med_id):
     except Exception as e:
         print(f"Medication operation error: {e}")
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        connection.close()
+
+@app.route('/api/medications/log', methods=['POST'])
+def api_log_medication():
+    """Log a medication as taken or missed for a specific time slot."""
+    if not session.get('user_id'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.json
+    med_id = data.get('medication_id')
+    time_slot = data.get('time_slot')
+    status = data.get('status') # 'taken' or 'missed'
+    
+    from datetime import date
+    today = date.today().isoformat()
+    
+    connection = get_connection()
+    if not connection:
+        return jsonify({'error': 'Database error'}), 500
+        
+    try:
+        cursor = connection.cursor()
+        query = """
+            INSERT INTO medication_logs (user_id, medication_id, log_date, time_slot, status)
+            VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE status = %s
+        """
+        cursor.execute(query, (session['user_id'], med_id, today, time_slot, status, status))
+        connection.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Log medication error: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        connection.close()
+
+@app.route('/api/medications/logs/today', methods=['GET'])
+def api_get_today_logs():
+    """Get all medication logs for the current user for today."""
+    if not session.get('user_id'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    from datetime import date
+    today = date.today().isoformat()
+    
+    connection = get_connection()
+    if not connection:
+        return jsonify({'logs': [], 'error': 'Database error'}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        query = "SELECT medication_id, time_slot, status FROM medication_logs WHERE user_id = %s AND log_date = %s"
+        cursor.execute(query, (session['user_id'], today))
+        logs = cursor.fetchall()
+        return jsonify({'logs': logs})
+    except Exception as e:
+        print(f"Get logs error: {e}")
+        return jsonify({'logs': [], 'error': str(e)}), 500
     finally:
         cursor.close()
         connection.close()

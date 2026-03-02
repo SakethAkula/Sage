@@ -513,10 +513,32 @@
 
     <script>
         let medications = [];
+        let todayLogs = [];
         let searchTimeout = null;
 
-        // Load medications on page load
-        document.addEventListener('DOMContentLoaded', loadMedications);
+        // Time mappings for notifications
+        const TIME_MAPPINGS = {
+            'morning': { hours: 8, minutes: 0 },
+            'afternoon': { hours: 13, minutes: 0 },
+            'evening': { hours: 18, minutes: 0 },
+            'night': { hours: 22, minutes: 0 }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            setupNotifications();
+        });
+
+        // Setup Browser Notifications
+        function setupNotifications() {
+            if ("Notification" in window) {
+                if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                    Notification.requestPermission();
+                }
+            }
+            // Check for reminders every minute
+            setInterval(checkReminders, 60000);
+        }
 
         // Autocomplete setup
         const medicineInput = document.getElementById('medicineName');
@@ -524,7 +546,6 @@
 
         medicineInput.addEventListener('input', function() {
             const query = this.value.trim();
-            
             clearTimeout(searchTimeout);
             
             if (query.length < 2) {
@@ -603,7 +624,6 @@
                     document.getElementById('dosage').value = med.dosage || '';
                     document.getElementById('notes').value = med.notes || '';
                     
-                    // Set time checkboxes
                     document.querySelectorAll('input[name="times"]').forEach(cb => {
                         cb.checked = med.times && med.times.includes(cb.value);
                     });
@@ -620,7 +640,6 @@
             }
         }
 
-        // Save medicine
         async function saveMedicine(event) {
             event.preventDefault();
             
@@ -651,7 +670,7 @@
                 
                 if (response.ok) {
                     closeModal();
-                    loadMedications();
+                    loadData(); // Reload both medicines and logs
                 } else {
                     alert('Failed to save medicine');
                 }
@@ -661,20 +680,27 @@
             }
         }
 
-        // Load medications
-        async function loadMedications() {
+        async function loadData() {
             try {
-                const response = await fetch('/api/medications');
-                const data = await response.json();
-                medications = data.medications || [];
+                // Fetch medications and today's logs simultaneously
+                const [medsResponse, logsResponse] = await Promise.all([
+                    fetch('/api/medications'),
+                    fetch('/api/medications/logs/today')
+                ]);
+                
+                const medsData = await medsResponse.json();
+                const logsData = await logsResponse.json();
+                
+                medications = medsData.medications || [];
+                todayLogs = logsData.logs || [];
+                
                 renderMedications();
                 updateScheduleCounts();
             } catch (error) {
-                console.error('Load error:', error);
+                console.error('Load data error:', error);
             }
         }
 
-        // Render medications list
         function renderMedications() {
             const list = document.getElementById('medicineList');
             
@@ -694,66 +720,135 @@
             
             list.innerHTML = medications.map(med => `
                 <div class="medicine-item">
-                    <div class="medicine-info">
-                        <div class="medicine-name">${med.medicine_name}</div>
-                        <div class="medicine-details">${med.dosage || 'No dosage specified'}</div>
-                        <div class="medicine-times">
-                            ${(med.times || []).map(t => `<span class="time-badge ${t}">${getTimeLabel(t)}</span>`).join('')}
+                    <div class="medicine-info" style="width:100%">
+                        <div style="display:flex; justify-content:space-between;">
+                            <div class="medicine-name">${med.medicine_name}</div>
+                            <div class="medicine-actions">
+                                <button class="action-btn" onclick="openModal(${med.id})" title="Edit">✏️</button>
+                                <button class="action-btn delete" onclick="deleteMedicine(${med.id})" title="Delete">🗑️</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="medicine-actions">
-                        <button class="action-btn" onclick="openModal(${med.id})" title="Edit">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="#3dbda7" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                        </button>
-                        <button class="action-btn delete" onclick="deleteMedicine(${med.id})" title="Delete">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                            </svg>
-                        </button>
+                        <div class="medicine-details">${med.dosage || 'No dosage specified'}</div>
+                        <div class="medicine-times" style="flex-direction: column; gap: 10px; margin-top: 15px;">
+                            ${(med.times || []).map(time => renderTimeSlot(med, time)).join('')}
+                        </div>
                     </div>
                 </div>
             `).join('');
         }
 
+        function renderTimeSlot(med, time) {
+            // Check if this slot was logged today
+            const log = todayLogs.find(l => l.medication_id === med.id && l.time_slot === time);
+            
+            let actionHtml = '';
+            if (log && log.status === 'taken') {
+                actionHtml = `<span style="color: #27ae60; font-weight: 600;">✅ Taken</span>`;
+            } else if (log && log.status === 'missed') {
+                actionHtml = `<span style="color: #e74c3c; font-weight: 600;">❌ Missed</span>`;
+            } else {
+                actionHtml = `
+                    <button onclick="logMedication(${med.id}, '${time}', 'taken')" style="background: #27ae60; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Take</button>
+                    <button onclick="logMedication(${med.id}, '${time}', 'missed')" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-left: 5px;">Skip</button>
+                `;
+            }
+
+            return `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.7); padding: 8px 12px; border-radius: 8px;">
+                    <span class="time-badge ${time}">${getTimeLabel(time)}</span>
+                    <div>${actionHtml}</div>
+                </div>
+            `;
+        }
+
+        async function logMedication(medId, timeSlot, status) {
+            try {
+                const response = await fetch('/api/medications/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ medication_id: medId, time_slot: timeSlot, status: status })
+                });
+                if(response.ok) {
+                    loadData(); // Refresh UI to update counts and buttons
+                }
+            } catch (e) {
+                console.error("Logging failed", e);
+            }
+        }
+
         function getTimeLabel(time) {
             const labels = {
-                morning: '🌅 Morning',
-                afternoon: '☀️ Afternoon', 
-                evening: '🌆 Evening',
-                night: '🌙 Night'
+                morning: '🌅 Morning (8:00 AM)',
+                afternoon: '☀️ Afternoon (1:00 PM)', 
+                evening: '🌆 Evening (6:00 PM)',
+                night: '🌙 Night (10:00 PM)'
             };
             return labels[time] || time;
         }
 
-        // Delete medicine
         async function deleteMedicine(id) {
             if (!confirm('Are you sure you want to delete this medicine?')) return;
-            
             try {
                 const response = await fetch(`/api/medications/${id}`, { method: 'DELETE' });
-                if (response.ok) {
-                    loadMedications();
-                }
+                if (response.ok) loadData();
             } catch (error) {
                 console.error('Delete error:', error);
             }
         }
 
-        // Update schedule counts
         function updateScheduleCounts() {
-            // Simplified counts for now
-            let total = 0;
+            let pending = 0;
+            let taken = 0;
+            let missed = 0;
+            
             medications.forEach(med => {
-                total += (med.times || []).length;
+                (med.times || []).forEach(time => {
+                    const log = todayLogs.find(l => l.medication_id === med.id && l.time_slot === time);
+                    if (!log) {
+                        pending++;
+                    } else if (log.status === 'taken') {
+                        taken++;
+                    } else if (log.status === 'missed') {
+                        missed++;
+                    }
+                });
             });
-            document.getElementById('pendingCount').textContent = total;
-            document.getElementById('takenCount').textContent = '0';
-            document.getElementById('missedCount').textContent = '0';
+            
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('takenCount').textContent = taken;
+            document.getElementById('missedCount').textContent = missed;
         }
+
+        // Check time against schedule and trigger Notification
+        function checkReminders() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMin = now.getMinutes();
+
+            medications.forEach(med => {
+                (med.times || []).forEach(timeSlot => {
+                    const targetTime = TIME_MAPPINGS[timeSlot];
+                    if (targetTime && currentHour === targetTime.hours && currentMin === targetTime.minutes) {
+                        // Check if already logged today
+                        const alreadyLogged = todayLogs.some(l => l.medication_id === med.id && l.time_slot === timeSlot);
+                        if (!alreadyLogged) {
+                            sendBrowserNotification(med.medicine_name, med.dosage, timeSlot);
+                        }
+                    }
+                });
+            });
+        }
+
+        function sendBrowserNotification(medName, dosage, timeSlot) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                const text = `Time to take your ${timeSlot} medicine: ${medName} ${dosage ? '('+dosage+')' : ''}`;
+                new Notification("💊 Sage Medicine Reminder", {
+                    body: text,
+                    icon: "🌿" 
+                });
+            }
+        }
+
     </script>
 </body>
 </html>
