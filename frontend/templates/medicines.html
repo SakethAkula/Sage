@@ -387,6 +387,46 @@
             .medicine-item { flex-direction: column; align-items: flex-start; gap: 15px; }
             .medicine-actions { width: 100%; justify-content: flex-end; }
         }
+
+        /* Dynamic Time Pickers */
+        .time-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .time-picker {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1rem;
+            color: #2c4a4a;
+            outline: none;
+        }
+        .remove-time-btn {
+            background: #ffe5e5;
+            color: #e74c3c;
+            border: none;
+            border-radius: 12px;
+            width: 45px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: 0.2s;
+        }
+        .remove-time-btn:hover { background: #ffcccc; }
+        .add-time-btn {
+            background: transparent;
+            color: #3dbda7;
+            border: 2px dashed #3dbda7;
+            padding: 12px;
+            width: 100%;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 5px;
+            transition: 0.2s;
+        }
+        .add-time-btn:hover { background: rgba(61, 189, 167, 0.1); }
     </style>
 </head>
 <body>
@@ -458,49 +498,21 @@
                     <label>Dosage</label>
                     <input type="text" id="dosage" placeholder="e.g., 1 tablet, 5ml, etc.">
                 </div>
-                
                 <div class="form-group">
-                    <label>When to take *</label>
-                    <div class="time-options">
-                        <label class="time-option">
-                            <input type="checkbox" name="times" value="morning">
-                            <span class="time-check">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                            </span>
-                            <span class="time-label">🌅 Morning<span>8:00 AM</span></span>
-                        </label>
-                        <label class="time-option">
-                            <input type="checkbox" name="times" value="afternoon">
-                            <span class="time-check">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                            </span>
-                            <span class="time-label">☀️ Afternoon<span>1:00 PM</span></span>
-                        </label>
-                        <label class="time-option">
-                            <input type="checkbox" name="times" value="evening">
-                            <span class="time-check">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                            </span>
-                            <span class="time-label">🌆 Evening<span>6:00 PM</span></span>
-                        </label>
-                        <label class="time-option">
-                            <input type="checkbox" name="times" value="night">
-                            <span class="time-check">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                            </span>
-                            <span class="time-label">🌙 Night<span>10:00 PM</span></span>
-                        </label>
-                    </div>
+                    <label>Frequency *</label>
+                    <select id="frequency" required>
+                        <option value="Daily">Everyday</option>
+                        <option value="Alternate">Alternate Days</option>
+                    </select>
                 </div>
-                
+
+                <div class="form-group">
+                    <label>Reminder Times *</label>
+                    <div id="timeInputsContainer">
+                        </div>
+                    <button type="button" class="add-time-btn" onclick="addTimeInput()">+ Add another time</button>
+                </div>
+                                
                 <div class="form-group">
                     <label>Notes (optional)</label>
                     <textarea id="notes" rows="2" placeholder="e.g., Take after food"></textarea>
@@ -516,14 +528,6 @@
         let todayLogs = [];
         let searchTimeout = null;
 
-        // Time mappings for notifications
-        const TIME_MAPPINGS = {
-            'morning': { hours: 8, minutes: 0 },
-            'afternoon': { hours: 13, minutes: 0 },
-            'evening': { hours: 18, minutes: 0 },
-            'night': { hours: 22, minutes: 0 }
-        };
-
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
             setupNotifications();
@@ -536,8 +540,7 @@
                     Notification.requestPermission();
                 }
             }
-            // Check for reminders every minute
-            setInterval(checkReminders, 60000);
+            setInterval(checkReminders, 60000); // Check every minute
         }
 
         // Autocomplete setup
@@ -571,15 +574,16 @@
                 const data = await response.json();
                 
                 if (data.medicines && data.medicines.length > 0) {
+                    // FIXED: using onmousedown instead of onclick
                     autocompleteList.innerHTML = data.medicines.map(med => `
-                        <div class="autocomplete-item" onclick="selectMedicine('${escapeHtml(med.name)}', '${escapeHtml(med.pack_size || '')}')">
+                        <div class="autocomplete-item" onmousedown="selectMedicine('${escapeHtml(med.name)}', '${escapeHtml(med.pack_size || '')}')">
                             <div class="med-name">${highlightMatch(med.name, query)}</div>
                             <div class="med-info">${med.manufacturer || ''} ${med.pack_size ? '• ' + med.pack_size : ''}</div>
                         </div>
                     `).join('');
                 } else {
                     autocompleteList.innerHTML = `
-                        <div class="autocomplete-item" onclick="selectMedicine('${escapeHtml(query)}', '')">
+                        <div class="autocomplete-item" onmousedown="selectMedicine('${escapeHtml(query)}', '')">
                             <div class="med-name">Use "${query}"</div>
                             <div class="med-info">Add as custom medicine</div>
                         </div>
@@ -611,25 +615,45 @@
             return div.innerHTML.replace(/'/g, "\\'");
         }
 
+        // Dynamic Time Picker logic
+        function addTimeInput(value = "08:00") {
+            const container = document.getElementById('timeInputsContainer');
+            const row = document.createElement('div');
+            row.className = 'time-input-row';
+            row.innerHTML = `
+                <input type="time" class="time-picker" value="${value}" required>
+                <button type="button" class="remove-time-btn" onclick="if(document.querySelectorAll('.time-picker').length > 1) this.parentElement.remove()">✕</button>
+            `;
+            container.appendChild(row);
+        }
+
         // Modal functions
         function openModal(id = null) {
             document.getElementById('modalOverlay').classList.add('show');
             document.getElementById('modalTitle').textContent = id ? 'Edit Medicine' : 'Add Medicine';
             document.getElementById('editId').value = id || '';
             
+            document.getElementById('timeInputsContainer').innerHTML = ''; // Clear times
+            
             if (id) {
                 const med = medications.find(m => m.id === id);
                 if (med) {
                     document.getElementById('medicineName').value = med.medicine_name;
                     document.getElementById('dosage').value = med.dosage || '';
+                    document.getElementById('frequency').value = med.frequency || 'Daily';
                     document.getElementById('notes').value = med.notes || '';
                     
-                    document.querySelectorAll('input[name="times"]').forEach(cb => {
-                        cb.checked = med.times && med.times.includes(cb.value);
-                    });
+                    // Populate exact times
+                    if (med.times && med.times.length > 0) {
+                        med.times.forEach(t => addTimeInput(t));
+                    } else {
+                        addTimeInput();
+                    }
                 }
             } else {
                 document.getElementById('medicineForm').reset();
+                document.getElementById('frequency').value = 'Daily';
+                addTimeInput(); // Add one default time picker
             }
         }
 
@@ -643,16 +667,17 @@
         async function saveMedicine(event) {
             event.preventDefault();
             
-            const times = Array.from(document.querySelectorAll('input[name="times"]:checked')).map(cb => cb.value);
+            const times = Array.from(document.querySelectorAll('.time-picker')).map(input => input.value);
             
             if (times.length === 0) {
-                alert('Please select at least one time');
+                alert('Please add at least one reminder time.');
                 return;
             }
             
             const data = {
                 medicine_name: document.getElementById('medicineName').value,
                 dosage: document.getElementById('dosage').value,
+                frequency: document.getElementById('frequency').value,
                 times: times,
                 notes: document.getElementById('notes').value
             };
@@ -670,7 +695,7 @@
                 
                 if (response.ok) {
                     closeModal();
-                    loadData(); // Reload both medicines and logs
+                    loadData(); 
                 } else {
                     alert('Failed to save medicine');
                 }
@@ -682,7 +707,6 @@
 
         async function loadData() {
             try {
-                // Fetch medications and today's logs simultaneously
                 const [medsResponse, logsResponse] = await Promise.all([
                     fetch('/api/medications'),
                     fetch('/api/medications/logs/today')
@@ -699,6 +723,16 @@
             } catch (error) {
                 console.error('Load data error:', error);
             }
+        }
+
+        function formatTime(timeStr) {
+            if (!timeStr) return '';
+            let [hours, minutes] = timeStr.split(':');
+            hours = parseInt(hours);
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; 
+            return `${hours}:${minutes} ${ampm}`;
         }
 
         function renderMedications() {
@@ -722,7 +756,7 @@
                 <div class="medicine-item">
                     <div class="medicine-info" style="width:100%">
                         <div style="display:flex; justify-content:space-between;">
-                            <div class="medicine-name">${med.medicine_name}</div>
+                            <div class="medicine-name">${med.medicine_name} <span style="font-size:0.8rem; background:#eee; padding:2px 8px; border-radius:10px; color:#555; margin-left:8px;">${med.frequency || 'Daily'}</span></div>
                             <div class="medicine-actions">
                                 <button class="action-btn" onclick="openModal(${med.id})" title="Edit">✏️</button>
                                 <button class="action-btn delete" onclick="deleteMedicine(${med.id})" title="Delete">🗑️</button>
@@ -738,7 +772,6 @@
         }
 
         function renderTimeSlot(med, time) {
-            // Check if this slot was logged today
             const log = todayLogs.find(l => l.medication_id === med.id && l.time_slot === time);
             
             let actionHtml = '';
@@ -755,7 +788,7 @@
 
             return `
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.7); padding: 8px 12px; border-radius: 8px;">
-                    <span class="time-badge ${time}">${getTimeLabel(time)}</span>
+                    <span class="time-badge">⏰ ${formatTime(time)}</span>
                     <div>${actionHtml}</div>
                 </div>
             `;
@@ -769,21 +802,11 @@
                     body: JSON.stringify({ medication_id: medId, time_slot: timeSlot, status: status })
                 });
                 if(response.ok) {
-                    loadData(); // Refresh UI to update counts and buttons
+                    loadData(); 
                 }
             } catch (e) {
                 console.error("Logging failed", e);
             }
-        }
-
-        function getTimeLabel(time) {
-            const labels = {
-                morning: '🌅 Morning (8:00 AM)',
-                afternoon: '☀️ Afternoon (1:00 PM)', 
-                evening: '🌆 Evening (6:00 PM)',
-                night: '🌙 Night (10:00 PM)'
-            };
-            return labels[time] || time;
         }
 
         async function deleteMedicine(id) {
@@ -801,7 +824,16 @@
             let taken = 0;
             let missed = 0;
             
+            const now = new Date();
+            
             medications.forEach(med => {
+                // If alternate day, check if it's scheduled for today
+                if (med.frequency === 'Alternate') {
+                    const createdDate = new Date(med.created_at);
+                    const daysDiff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+                    if (daysDiff % 2 !== 0) return; // Skip counting if it's an off day
+                }
+                
                 (med.times || []).forEach(time => {
                     const log = todayLogs.find(l => l.medication_id === med.id && l.time_slot === time);
                     if (!log) {
@@ -819,36 +851,42 @@
             document.getElementById('missedCount').textContent = missed;
         }
 
-        // Check time against schedule and trigger Notification
         function checkReminders() {
             const now = new Date();
             const currentHour = now.getHours();
             const currentMin = now.getMinutes();
 
             medications.forEach(med => {
+                // Handle Alternate Days
+                if (med.frequency === 'Alternate') {
+                    const createdDate = new Date(med.created_at);
+                    const daysDiff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+                    if (daysDiff % 2 !== 0) return; // Skip if off day
+                }
+
                 (med.times || []).forEach(timeSlot => {
-                    const targetTime = TIME_MAPPINGS[timeSlot];
-                    if (targetTime && currentHour === targetTime.hours && currentMin === targetTime.minutes) {
-                        // Check if already logged today
+                    if(!timeSlot) return;
+                    const [targetHour, targetMin] = timeSlot.split(':').map(Number);
+                    
+                    if (currentHour === targetHour && currentMin === targetMin) {
                         const alreadyLogged = todayLogs.some(l => l.medication_id === med.id && l.time_slot === timeSlot);
                         if (!alreadyLogged) {
-                            sendBrowserNotification(med.medicine_name, med.dosage, timeSlot);
+                            sendBrowserNotification(med.medicine_name, med.dosage, formatTime(timeSlot));
                         }
                     }
                 });
             });
         }
 
-        function sendBrowserNotification(medName, dosage, timeSlot) {
+        function sendBrowserNotification(medName, dosage, timeStr) {
             if ("Notification" in window && Notification.permission === "granted") {
-                const text = `Time to take your ${timeSlot} medicine: ${medName} ${dosage ? '('+dosage+')' : ''}`;
+                const text = `Time to take your ${timeStr} medicine: ${medName} ${dosage ? '('+dosage+')' : ''}`;
                 new Notification("💊 Sage Medicine Reminder", {
                     body: text,
                     icon: "🌿" 
                 });
             }
         }
-
     </script>
 </body>
 </html>

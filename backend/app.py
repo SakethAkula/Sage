@@ -783,12 +783,14 @@ def api_medications():
         return jsonify({'error': 'Unauthorized'}), 401
     
     user_id = session['user_id']
+    import json # keeping your inline import, but better to move to top of file
     
     if request.method == 'POST':
         data = request.json
         
         medicine_name = data.get('medicine_name')
         dosage = data.get('dosage', '')
+        frequency = data.get('frequency', 'Daily') # <--- NEW: Added frequency
         times = data.get('times', [])
         notes = data.get('notes', '')
         
@@ -802,12 +804,12 @@ def api_medications():
         try:
             cursor = connection.cursor()
             
+            # <--- NEW: Added frequency to INSERT query
             query = """
-                INSERT INTO user_medications (user_id, medicine_name, dosage, times, notes)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO user_medications (user_id, medicine_name, dosage, frequency, times, notes)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """
-            import json
-            cursor.execute(query, (user_id, medicine_name, dosage, json.dumps(times), notes))
+            cursor.execute(query, (user_id, medicine_name, dosage, frequency, json.dumps(times), notes))
             connection.commit()
             
             return jsonify({'success': True, 'id': cursor.lastrowid})
@@ -827,8 +829,9 @@ def api_medications():
     try:
         cursor = connection.cursor(dictionary=True)
         
+        # <--- NEW: Added frequency to SELECT query
         query = """
-            SELECT id, medicine_name, dosage, times, notes, active, created_at
+            SELECT id, medicine_name, dosage, frequency, times, notes, active, created_at
             FROM user_medications 
             WHERE user_id = %s AND active = TRUE
             ORDER BY created_at DESC
@@ -837,7 +840,6 @@ def api_medications():
         medications = cursor.fetchall()
         
         # Parse JSON times
-        import json
         for med in medications:
             if med['times']:
                 try:
@@ -870,6 +872,7 @@ def api_medication(med_id):
     if not connection:
         return jsonify({'error': 'Database error'}), 500
     
+    import json
     try:
         cursor = connection.cursor(dictionary=True)
         
@@ -886,14 +889,16 @@ def api_medication(med_id):
         elif request.method == 'PUT':
             data = request.json
             
+            # <--- NEW: Added frequency to UPDATE query
             query = """
                 UPDATE user_medications 
-                SET medicine_name = %s, dosage = %s, times = %s, notes = %s
+                SET medicine_name = %s, dosage = %s, frequency = %s, times = %s, notes = %s
                 WHERE id = %s AND user_id = %s
             """
             cursor.execute(query, (
                 data.get('medicine_name'),
                 data.get('dosage', ''),
+                data.get('frequency', 'Daily'), # <--- NEW: Get frequency
                 json.dumps(data.get('times', [])),
                 data.get('notes', ''),
                 med_id,
@@ -906,7 +911,6 @@ def api_medication(med_id):
             cursor.execute("SELECT * FROM user_medications WHERE id = %s AND user_id = %s", (med_id, user_id))
             med = cursor.fetchone()
             
-
             if med and med['times']:
                 try:
                     med['times'] = json.loads(med['times'])
