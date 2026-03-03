@@ -157,5 +157,19 @@
             </div>
         </div>
     </div>
+    {% if error %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Play the meme sound if there's an error on the page
+            let errorAudio = new Audio("{{ url_for('static', filename='sounds/error.mp3') }}");
+            errorAudio.volume = 0.75; // Set volume to 75%
+            
+            // Browsers sometimes block autoplay, so we catch the error to prevent console spam
+            errorAudio.play().catch(err => console.log("Browser blocked autoplay:", err));
+        });
+    </script>
+    {% endif %}
+</body>
+</html>
 </body>
 </html>
