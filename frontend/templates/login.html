@@ -159,14 +159,64 @@
     </div>
     {% if error %}
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Play the meme sound if there's an error on the page
-            let errorAudio = new Audio("{{ url_for('static', filename='sounds/error.mp3') }}");
-            errorAudio.volume = 0.75; // Set volume to 75%
-            
-            // Browsers sometimes block autoplay, so we catch the error to prevent console spam
-            errorAudio.play().catch(err => console.log("Browser blocked autoplay:", err));
-        });
+// 1. Load the audio globally
+        const errorAudio = new Audio("{{ url_for('static', filename='sounds/error.mp3') }}");
+        errorAudio.volume = 0.5;
+
+        function setupAjaxLogin() {
+            // Find the login form
+            const loginForm = document.querySelector('form');
+            if (!loginForm) return;
+
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault(); // Stop standard page reload
+
+                // iOS TRICK: Play and pause immediately on the user's tap to unlock audio
+                errorAudio.play().then(() => {
+                    errorAudio.pause();
+                    errorAudio.currentTime = 0;
+                }).catch(err => console.log("Unlock pending...", err));
+
+                const formData = new FormData(loginForm);
+
+                try {
+                    // Send login request in the background
+                    const response = await fetch('/login', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    // If login is successful, Flask redirects to /chat. 
+                    // Fetch follows this automatically.
+                    if (response.url.includes('/chat') || response.url.includes('/onboarding')) {
+                        window.location.href = response.url; // Navigate into the app
+                        return;
+                    }
+
+                    // If we are still on the login URL, it means authentication failed!
+                    // PLAY THE MEME SOUND!
+                    errorAudio.currentTime = 0;
+                    errorAudio.play().catch(err => console.log("Audio blocked:", err));
+
+                    // Get the new HTML (which includes your red error message)
+                    const htmlText = await response.text();
+                    
+                    // Safely replace the current page content to show the error
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlText, 'text/html');
+                    document.body.innerHTML = doc.body.innerHTML;
+
+                    // Re-attach this listener to the new form so it works on the next try
+                    setupAjaxLogin();
+
+                } catch (error) {
+                    console.error("Login request error:", error);
+                }
+            });
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', setupAjaxLogin);
     </script>
     {% endif %}
 </body>

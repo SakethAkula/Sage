@@ -2,7 +2,6 @@
 
 let selectedFile = null;
 let currentSessionId = null;
-
 // ===== THEME TOGGLE =====
 function toggleTheme() {
     const body = document.body;
