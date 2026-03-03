@@ -162,20 +162,33 @@
 // 1. Load the audio globally
         const errorAudio = new Audio("{{ url_for('static', filename='sounds/error.mp3') }}");
         errorAudio.volume = 0.5;
+        let isAudioUnlocked = false;
 
+        // 2. Unlock the audio on the user's very first tap anywhere on the page
+        // (Like when they tap the email field to start typing)
+        function unlockAudio() {
+            if (!isAudioUnlocked) {
+                errorAudio.play().then(() => {
+                    errorAudio.pause();
+                    errorAudio.currentTime = 0;
+                    isAudioUnlocked = true;
+                }).catch(err => console.log("Unlock pending...", err));
+            }
+            // Remove listeners once unlocked to save memory
+            document.removeEventListener('touchstart', unlockAudio);
+            document.removeEventListener('click', unlockAudio);
+        }
+        
+        document.addEventListener('touchstart', unlockAudio, { once: true });
+        document.addEventListener('click', unlockAudio, { once: true });
+
+        // 3. Setup the background form submission
         function setupAjaxLogin() {
-            // Find the login form
             const loginForm = document.querySelector('form');
             if (!loginForm) return;
 
             loginForm.addEventListener('submit', async function(e) {
                 e.preventDefault(); // Stop standard page reload
-
-                // iOS TRICK: Play and pause immediately on the user's tap to unlock audio
-                errorAudio.play().then(() => {
-                    errorAudio.pause();
-                    errorAudio.currentTime = 0;
-                }).catch(err => console.log("Unlock pending...", err));
 
                 const formData = new FormData(loginForm);
 
@@ -186,22 +199,18 @@
                         body: formData
                     });
 
-                    // If login is successful, Flask redirects to /chat. 
-                    // Fetch follows this automatically.
+                    // If login is successful, redirect into the app
                     if (response.url.includes('/chat') || response.url.includes('/onboarding')) {
-                        window.location.href = response.url; // Navigate into the app
+                        window.location.href = response.url; 
                         return;
                     }
 
-                    // If we are still on the login URL, it means authentication failed!
-                    // PLAY THE MEME SOUND!
+                    // If we get here, authentication failed! PLAY SOUND!
                     errorAudio.currentTime = 0;
                     errorAudio.play().catch(err => console.log("Audio blocked:", err));
 
-                    // Get the new HTML (which includes your red error message)
+                    // Safely replace the current page content to show the red error message
                     const htmlText = await response.text();
-                    
-                    // Safely replace the current page content to show the error
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(htmlText, 'text/html');
                     document.body.innerHTML = doc.body.innerHTML;
