@@ -157,78 +157,23 @@
             </div>
         </div>
     </div>
-    {% if error %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+    
     <script>
-// 1. Load the audio globally
-        // 1. Setup Web Audio API variables
-        let audioContext;
-        let audioBuffer;
+        // 2. Initialize the sound using Howler
+        var errorSound = new Howl({
+            src: ["{{ url_for('static', filename='sounds/error.mp3') }}"],
+            volume: 0.5,
+            preload: true
+        });
 
-        // 2. Initialize and fetch the audio into memory immediately on page load
-        function initAudio() {
-            // Support for all browsers (Safari requires webkit prefix)
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            audioContext = new AudioContext();
-
-            // Fetch the MP3 as raw binary data
-            fetch("{{ url_for('static', filename='sounds/error.mp3') }}")
-                .then(response => response.arrayBuffer())
-                .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-                .then(buffer => {
-                    audioBuffer = buffer;
-                })
-                .catch(err => console.error("Audio load error:", err));
-        }
-
-        document.addEventListener('DOMContentLoaded', initAudio);
-
-        // 3. Unlock the audio engine on the very first tap/click anywhere
-        function unlockAudio() {
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-            // Remove listeners once unlocked
-            document.removeEventListener('touchstart', unlockAudio);
-            document.removeEventListener('click', unlockAudio);
-        }
-        document.addEventListener('touchstart', unlockAudio, { once: true });
-        document.addEventListener('click', unlockAudio, { once: true });
-
-        // 4. Function to blast the sound instantly
-        function playErrorSound() {
-            if (!audioContext || !audioBuffer) return;
-
-            // Ensure context is running
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-
-            // Create a sound source node
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-
-            // Create a volume control node (50% volume)
-            const gainNode = audioContext.createGain();
-            gainNode.gain.value = 0.5; 
-
-            // Connect and play!
-            source.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            source.start(0);
-        }
-
-        // 5. Handle the Login process
+        // 3. Handle the Login process
         function setupAjaxLogin() {
             const loginForm = document.querySelector('form');
             if (!loginForm) return;
 
             loginForm.addEventListener('submit', async function(e) {
-                e.preventDefault(); 
-
-                // Extra safety: resume audio context exactly when submit is clicked
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
+                e.preventDefault(); // Stop standard page reload
 
                 const submitBtn = loginForm.querySelector('button[type="submit"]');
                 const originalText = submitBtn ? submitBtn.innerHTML : 'Login';
@@ -240,6 +185,8 @@
 
                 try {
                     const formData = new FormData(loginForm);
+                    
+                    // Send login request in the background
                     const response = await fetch('/login', {
                         method: 'POST',
                         body: formData
@@ -252,35 +199,23 @@
                     }
 
                     // ---------------------------------------------------------
-                    // LOGIN FAILED! Play the Web Audio API sound instantly!
+                    // LOGIN FAILED! 
+                    // Tell Howler to play. It guarantees playback on all devices.
                     // ---------------------------------------------------------
-                    playErrorSound();
+                    errorSound.play();
 
-                    // Smoothly extract and inject ONLY the error message
+                    // Safely replace the page content with the new red error message
                     const htmlText = await response.text();
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(htmlText, 'text/html');
-                    
-                    const newError = doc.querySelector('.error-message');
-                    const existingError = document.querySelector('.error-message');
+                    document.body.innerHTML = doc.body.innerHTML;
 
-                    // Remove old error if it exists
-                    if (existingError) existingError.remove();
-
-                    // Inject new error smoothly under the welcome title
-                    if (newError) {
-                        const welcomeTitle = document.querySelector('.welcome-title');
-                        welcomeTitle.insertAdjacentElement('afterend', newError);
-                    }
-
-                    // Reset the login button
-                    if (submitBtn) {
-                        submitBtn.innerHTML = originalText;
-                        submitBtn.disabled = false;
-                    }
+                    // Re-attach this listener to the new form so it works on the next try
+                    setupAjaxLogin();
 
                 } catch (error) {
                     console.error("Login request error:", error);
+                    // Reset button if there's a critical network error
                     if (submitBtn) {
                         submitBtn.innerHTML = originalText;
                         submitBtn.disabled = false;
@@ -291,12 +226,6 @@
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', setupAjaxLogin);
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', setupAjaxLogin);
     </script>
-    {% endif %}
-</body>
-</html>
 </body>
 </html>
