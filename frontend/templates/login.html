@@ -162,7 +162,34 @@
 // 1. Load the audio globally
         const errorAudio = new Audio("{{ url_for('static', filename='sounds/error.mp3') }}");
         errorAudio.volume = 0.5;
+        errorAudio.preload = "auto"; // Forces audio to load into memory immediately
+        
+        let audioUnlocked = false;
 
+        // 2. Silently unlock the audio on the very first interaction (Tap, Click, or Typing)
+        function unlockAudio() {
+            if (audioUnlocked) return;
+            
+            errorAudio.muted = true;
+            errorAudio.play().then(() => {
+                errorAudio.pause();
+                errorAudio.currentTime = 0;
+                errorAudio.muted = false; // Unmute it so it's ready for the real error
+                audioUnlocked = true;
+            }).catch(e => console.log("Audio unlock pending..."));
+            
+            // Clean up listeners once unlocked
+            document.removeEventListener('touchstart', unlockAudio);
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('keydown', unlockAudio);
+        }
+
+        // Attach listeners so the moment they tap the email box or start typing, it unlocks
+        document.addEventListener('touchstart', unlockAudio, { once: true });
+        document.addEventListener('click', unlockAudio, { once: true });
+        document.addEventListener('keydown', unlockAudio, { once: true });
+
+        // 3. Handle the background login
         function setupAjaxLogin() {
             const loginForm = document.querySelector('form');
             if (!loginForm) return;
@@ -170,13 +197,14 @@
             loginForm.addEventListener('submit', async function(e) {
                 e.preventDefault(); // Stop standard page reload
 
-                // ---------------------------------------------------------
-                // THE BULLETPROOF TRICK:
-                // Start playing the audio IMMEDIATELY on click, but MUTED.
-                // Because it happens on a real click, the browser allows it!
-                // ---------------------------------------------------------
-                errorAudio.muted = true;
-                errorAudio.play().catch(err => console.log("Audio blocked:", err));
+                // Optional: Show a loading state on the button
+                const submitBtn = loginForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                if (submitBtn) {
+                    submitBtn.innerHTML = 'Logging in...';
+                    submitBtn.style.opacity = '0.7';
+                    submitBtn.disabled = true;
+                }
 
                 const formData = new FormData(loginForm);
 
@@ -194,12 +222,12 @@
                     }
 
                     // ---------------------------------------------------------
-                    // LOGIN FAILED! 
-                    // The audio is already playing silently. We just rewind 
-                    // to the beginning and UNMUTE it!
+                    // LOGIN FAILED! PLAY SOUND!
+                    // Because it was preloaded and unlocked when they typed 
+                    // their email, it will play instantly on the first try!
                     // ---------------------------------------------------------
                     errorAudio.currentTime = 0;
-                    errorAudio.muted = false;
+                    errorAudio.play().catch(err => console.log("Audio blocked:", err));
 
                     // Safely replace the current page content to show the red error message
                     const htmlText = await response.text();
@@ -212,9 +240,18 @@
 
                 } catch (error) {
                     console.error("Login request error:", error);
+                    // Reset button if there's a critical network error
+                    if (submitBtn) {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.disabled = false;
+                    }
                 }
             });
         }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', setupAjaxLogin);
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', setupAjaxLogin);
