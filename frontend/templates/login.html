@@ -161,35 +161,22 @@
     <script>
 // 1. Load the audio globally
         const errorAudio = new Audio("{{ url_for('static', filename='sounds/error.mp3') }}");
+        errorAudio.preload = "auto";
         errorAudio.volume = 0.5;
-        errorAudio.preload = "auto"; // Forces audio to load into memory immediately
         
-        let audioUnlocked = false;
-
-        // 2. Silently unlock the audio on the very first interaction (Tap, Click, or Typing)
-        function unlockAudio() {
-            if (audioUnlocked) return;
-            
-            errorAudio.muted = true;
+        // 2. Force the browser to fetch and unlock the file on the first click anywhere
+        const forceLoad = () => {
             errorAudio.play().then(() => {
                 errorAudio.pause();
                 errorAudio.currentTime = 0;
-                errorAudio.muted = false; // Unmute it so it's ready for the real error
-                audioUnlocked = true;
-            }).catch(e => console.log("Audio unlock pending..."));
-            
-            // Clean up listeners once unlocked
-            document.removeEventListener('touchstart', unlockAudio);
-            document.removeEventListener('click', unlockAudio);
-            document.removeEventListener('keydown', unlockAudio);
-        }
+            }).catch(e => console.log("Unlock pending..."));
+            document.removeEventListener('touchstart', forceLoad);
+            document.removeEventListener('click', forceLoad);
+        };
+        document.addEventListener('touchstart', forceLoad, { once: true });
+        document.addEventListener('click', forceLoad, { once: true });
 
-        // Attach listeners so the moment they tap the email box or start typing, it unlocks
-        document.addEventListener('touchstart', unlockAudio, { once: true });
-        document.addEventListener('click', unlockAudio, { once: true });
-        document.addEventListener('keydown', unlockAudio, { once: true });
-
-        // 3. Handle the background login
+        // 3. Handle the login
         function setupAjaxLogin() {
             const loginForm = document.querySelector('form');
             if (!loginForm) return;
@@ -197,12 +184,19 @@
             loginForm.addEventListener('submit', async function(e) {
                 e.preventDefault(); // Stop standard page reload
 
-                // Optional: Show a loading state on the button
+                // ---------------------------------------------------------
+                // THE LOOP HACK: Play immediately, muted, on an infinite loop.
+                // It will never finish before the server responds!
+                // ---------------------------------------------------------
+                errorAudio.muted = true;
+                errorAudio.loop = true;
+                errorAudio.play().catch(err => console.log("Audio prep blocked:", err));
+
                 const submitBtn = loginForm.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
+                const originalText = submitBtn ? submitBtn.innerHTML : 'Login';
+                
                 if (submitBtn) {
                     submitBtn.innerHTML = 'Logging in...';
-                    submitBtn.style.opacity = '0.7';
                     submitBtn.disabled = true;
                 }
 
@@ -215,19 +209,20 @@
                         body: formData
                     });
 
-                    // If login is successful, redirect into the app
+                    // If login is successful
                     if (response.url.includes('/chat') || response.url.includes('/onboarding')) {
+                        errorAudio.pause(); // Stop the silent loop
                         window.location.href = response.url; 
                         return;
                     }
 
                     // ---------------------------------------------------------
-                    // LOGIN FAILED! PLAY SOUND!
-                    // Because it was preloaded and unlocked when they typed 
-                    // their email, it will play instantly on the first try!
+                    // LOGIN FAILED!
+                    // Rewind it to 0, UNMUTE it, and TURN OFF the loop!
                     // ---------------------------------------------------------
                     errorAudio.currentTime = 0;
-                    errorAudio.play().catch(err => console.log("Audio blocked:", err));
+                    errorAudio.muted = false;
+                    errorAudio.loop = false;
 
                     // Safely replace the current page content to show the red error message
                     const htmlText = await response.text();
@@ -235,23 +230,19 @@
                     const doc = parser.parseFromString(htmlText, 'text/html');
                     document.body.innerHTML = doc.body.innerHTML;
 
-                    // Re-attach this listener to the new form so it works on the next try
+                    // Re-attach this listener to the new form
                     setupAjaxLogin();
 
                 } catch (error) {
                     console.error("Login request error:", error);
-                    // Reset button if there's a critical network error
+                    errorAudio.pause(); // Stop the loop if the network completely fails
                     if (submitBtn) {
                         submitBtn.innerHTML = originalText;
-                        submitBtn.style.opacity = '1';
                         submitBtn.disabled = false;
                     }
                 }
             });
         }
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', setupAjaxLogin);
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', setupAjaxLogin);
