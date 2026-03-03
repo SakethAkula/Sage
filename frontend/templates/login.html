@@ -162,33 +162,21 @@
 // 1. Load the audio globally
         const errorAudio = new Audio("{{ url_for('static', filename='sounds/error.mp3') }}");
         errorAudio.volume = 0.5;
-        let isAudioUnlocked = false;
 
-        // 2. Unlock the audio on the user's very first tap anywhere on the page
-        // (Like when they tap the email field to start typing)
-        function unlockAudio() {
-            if (!isAudioUnlocked) {
-                errorAudio.play().then(() => {
-                    errorAudio.pause();
-                    errorAudio.currentTime = 0;
-                    isAudioUnlocked = true;
-                }).catch(err => console.log("Unlock pending...", err));
-            }
-            // Remove listeners once unlocked to save memory
-            document.removeEventListener('touchstart', unlockAudio);
-            document.removeEventListener('click', unlockAudio);
-        }
-        
-        document.addEventListener('touchstart', unlockAudio, { once: true });
-        document.addEventListener('click', unlockAudio, { once: true });
-
-        // 3. Setup the background form submission
         function setupAjaxLogin() {
             const loginForm = document.querySelector('form');
             if (!loginForm) return;
 
             loginForm.addEventListener('submit', async function(e) {
                 e.preventDefault(); // Stop standard page reload
+
+                // ---------------------------------------------------------
+                // THE BULLETPROOF TRICK:
+                // Start playing the audio IMMEDIATELY on click, but MUTED.
+                // Because it happens on a real click, the browser allows it!
+                // ---------------------------------------------------------
+                errorAudio.muted = true;
+                errorAudio.play().catch(err => console.log("Audio blocked:", err));
 
                 const formData = new FormData(loginForm);
 
@@ -205,9 +193,13 @@
                         return;
                     }
 
-                    // If we get here, authentication failed! PLAY SOUND!
+                    // ---------------------------------------------------------
+                    // LOGIN FAILED! 
+                    // The audio is already playing silently. We just rewind 
+                    // to the beginning and UNMUTE it!
+                    // ---------------------------------------------------------
                     errorAudio.currentTime = 0;
-                    errorAudio.play().catch(err => console.log("Audio blocked:", err));
+                    errorAudio.muted = false;
 
                     // Safely replace the current page content to show the red error message
                     const htmlText = await response.text();
