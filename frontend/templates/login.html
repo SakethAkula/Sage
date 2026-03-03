@@ -162,7 +162,7 @@
 // 1. Load the audio globally
         const errorAudio = new Audio("{{ url_for('static', filename='sounds/error.mp3') }}");
         errorAudio.preload = "auto";
-        errorAudio.volume = 0.5;
+        errorAudio.volume = 0.99;
         
         // 2. Force the browser to fetch and unlock the file on the first click anywhere
         const forceLoad = () => {
