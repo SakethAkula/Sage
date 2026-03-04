@@ -8,3 +8,6 @@ gunicorn
 pymysql
 cryptography
 requests
+sentence-transformers 
+scikit-learn 
+numpy
